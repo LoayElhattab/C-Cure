@@ -185,6 +185,19 @@ def main():
         result = fetch_dashboard()
         print(json.dumps(result, indent=2))
 
+    elif command == "extract_functions":
+        if len(sys.argv) < 3:
+            print(json.dumps({"error": "No file path provided"}))
+            sys.exit(1)
+        from parser import extract_functions
+        functions = extract_functions(sys.argv[2])
+        print(json.dumps({"functions": functions, "count": len(functions)}))
+
+    elif command == "check_api":
+        from inference import check_api_health
+        ok = check_api_health()
+        print(json.dumps({"reachable": ok}))
+
     else:
         print(json.dumps({"error": f"Unknown command: {command}"}))
         sys.exit(1)
