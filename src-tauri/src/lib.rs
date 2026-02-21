@@ -59,6 +59,16 @@ fn get_dashboard() -> Result<String, String> {
     run_python(vec!["main.py", "dashboard"])
 }
 
+#[tauri::command]
+fn extract_functions(file_path: String) -> Result<String, String> {
+    run_python(vec!["main.py", "extract_functions", &file_path])
+}
+
+#[tauri::command]
+fn check_api() -> Result<String, String> {
+    run_python(vec!["main.py", "check_api"])
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -70,7 +80,9 @@ pub fn run() {
             analyze_folder,
             get_history,
             get_report,
-            get_dashboard
+            get_dashboard,
+            extract_functions,
+            check_api
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")

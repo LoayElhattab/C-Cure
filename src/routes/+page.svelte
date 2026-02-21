@@ -1,97 +1,49 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { invoke } from '@tauri-apps/api/core';
-  import { open } from '@tauri-apps/plugin-shell';
+  import { FolderOpen, FileCode, ArrowRight } from 'lucide-svelte';
+  import { pendingAnalysis } from '$lib/store';
 
-  let isDragging = false;
-  let selectedFile: string | null = null;
-  let selectedFileName: string = '';
+  let selectedPath: string | null = null;
+  let selectedName: string = '';
+  let selectionType: 'file' | 'folder' | null = null;
   let errorMessage = '';
-  let isAnalyzing = false;
 
-  function handleDragOver(e: DragEvent) {
-    e.preventDefault();
-    isDragging = true;
-  }
-
-  function handleDragLeave() {
-    isDragging = false;
-  }
-
-  function handleDrop(e: DragEvent) {
-    e.preventDefault();
-    isDragging = false;
-    const file = e.dataTransfer?.files[0];
-    if (file) validateAndSet(file);
-  }
-
-  function handleFileInput(e: Event) {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (file) validateAndSet(file);
-  }
-
-  function validateAndSet(file: File) {
-    if (!file.name.endsWith('.cpp') && !file.name.endsWith('.h') && !file.name.endsWith('.c')) {
-      errorMessage = 'Only .cpp, .c, or .h files are supported.';
-      selectedFile = null;
-      return;
-    }
+  async function handleFilePick() {
     errorMessage = '';
-    selectedFileName = file.name;
-    // @ts-ignore — webkitRelativePath / path is available in Tauri's webview
-    selectedFile = file.path ?? file.name;
-  }
-
-  async function handleAnalyze() {
-    if (!selectedFile) return;
-    isAnalyzing = true;
-    errorMessage = '';
-
     try {
-      const raw = await invoke<string>('analyze_file', { filePath: selectedFile });
-      const result = JSON.parse(raw);
-
-      if (result.error) {
-        errorMessage = result.error;
-        isAnalyzing = false;
-        return;
-      }
-
-      goto(`/report/${result.analysis_id}`);
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const result = await open({
+        multiple: false,
+        directory: false,
+        filters: [{ name: 'C/C++ Files', extensions: ['cpp', 'c', 'h', 'cc', 'cxx'] }]
+      });
+      if (!result) return;
+      selectedPath = result as string;
+      selectedName = selectedPath.replace(/\\/g, '/').split('/').pop() ?? selectedPath;
+      selectionType = 'file';
     } catch (err) {
-      errorMessage = `Unexpected error: ${err}`;
-      isAnalyzing = false;
+      errorMessage = `Could not open file picker: ${err}`;
     }
   }
 
-  async function handleFolderAnalyze() {
+  async function handleFolderPick() {
     errorMessage = '';
-    isAnalyzing = true;
-
     try {
-      // Tauri folder picker
-      const { dialog } = await import('@tauri-apps/plugin-dialog');
-      const folder = await dialog.open({ directory: true, multiple: false });
-
-      if (!folder) {
-        isAnalyzing = false;
-        return;
-      }
-
-      const raw = await invoke<string>('analyze_folder', { folderPath: folder as string });
-      const result = JSON.parse(raw);
-
-      if (result.error) {
-        errorMessage = result.error;
-        isAnalyzing = false;
-        return;
-      }
-
-      goto(`/report/${result.analysis_id}`);
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const result = await open({ multiple: false, directory: true });
+      if (!result) return;
+      selectedPath = result as string;
+      selectedName = selectedPath.replace(/\\/g, '/').split('/').pop() ?? selectedPath;
+      selectionType = 'folder';
     } catch (err) {
-      errorMessage = `Unexpected error: ${err}`;
-      isAnalyzing = false;
+      errorMessage = `Could not open folder picker: ${err}`;
     }
+  }
+
+  function handleAnalyze() {
+    if (!selectedPath || !selectionType) return;
+    pendingAnalysis.set({ type: selectionType, path: selectedPath });
+    goto('/analyzing');
   }
 </script>
 
@@ -104,64 +56,67 @@
 
   <div class="w-full max-w-xl bg-gray-900 rounded-2xl p-8 shadow-xl border border-gray-800">
 
-    <h2 class="text-xl font-semibold mb-6 text-gray-100">Upload a File</h2>
+    <h2 class="text-xl font-semibold mb-6 text-gray-100">Select a Target</h2>
 
-    <div
-      role="button"
-      tabindex="0"
-      class="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-200
-        {isDragging ? 'border-cyan-400 bg-cyan-950' : 'border-gray-700 hover:border-cyan-600 hover:bg-gray-800'}"
-      on:dragover={handleDragOver}
-      on:dragleave={handleDragLeave}
-      on:drop={handleDrop}
-      on:click={() => document.getElementById('fileInput')?.click()}
-      on:keydown={(e) => e.key === 'Enter' && document.getElementById('fileInput')?.click()}
-    >
-      <div class="text-4xl mb-3">📂</div>
-      {#if selectedFileName}
-        <p class="text-cyan-400 font-medium">{selectedFileName}</p>
-        <p class="text-gray-500 text-sm mt-1">Ready to analyze</p>
-      {:else}
-        <p class="text-gray-400">Drag & drop a <span class="text-cyan-400">.cpp</span> file here</p>
-        <p class="text-gray-600 text-sm mt-1">or click to browse</p>
-      {/if}
+    <!-- Two pick buttons -->
+    <div class="grid grid-cols-2 gap-3 mb-6">
+
+      <button
+        on:click={handleFilePick}
+        class="flex flex-col items-center justify-center gap-2 p-6 rounded-xl border-2 transition-all duration-200
+          {selectionType === 'file'
+            ? 'border-cyan-400 bg-cyan-950 text-cyan-400'
+            : 'border-gray-700 text-gray-400 hover:border-cyan-600 hover:text-cyan-400 hover:bg-gray-800'}"
+      >
+        <FileCode size={28} />
+        <span class="text-sm font-medium">Single File</span>
+        <span class="text-xs text-gray-500">.cpp / .c / .h</span>
+      </button>
+
+      <button
+        on:click={handleFolderPick}
+        class="flex flex-col items-center justify-center gap-2 p-6 rounded-xl border-2 transition-all duration-200
+          {selectionType === 'folder'
+            ? 'border-cyan-400 bg-cyan-950 text-cyan-400'
+            : 'border-gray-700 text-gray-400 hover:border-cyan-600 hover:text-cyan-400 hover:bg-gray-800'}"
+      >
+        <FolderOpen size={28} />
+        <span class="text-sm font-medium">Project Folder</span>
+        <span class="text-xs text-gray-500">Scans all C++ files</span>
+      </button>
+
     </div>
 
-    <input
-      id="fileInput"
-      type="file"
-      accept=".cpp,.c,.h"
-      class="hidden"
-      on:change={handleFileInput}
-    />
-
-    {#if errorMessage}
-      <p class="text-red-400 text-sm mt-3">{errorMessage}</p>
+    <!-- Selected indicator -->
+    {#if selectedName}
+      <div class="flex items-center gap-3 bg-gray-800 rounded-xl px-4 py-3 mb-6">
+        {#if selectionType === 'file'}
+          <FileCode size={16} color="#22d3ee" />
+        {:else}
+          <FolderOpen size={16} color="#22d3ee" />
+        {/if}
+        <div class="flex-1 min-w-0">
+          <p class="text-cyan-400 text-sm font-medium truncate">{selectedName}</p>
+          <p class="text-gray-500 text-xs">{selectedPath}</p>
+        </div>
+      </div>
     {/if}
 
-    <div class="flex items-center my-6 gap-3">
-      <div class="flex-1 h-px bg-gray-800"></div>
-      <span class="text-gray-600 text-sm">or</span>
-      <div class="flex-1 h-px bg-gray-800"></div>
-    </div>
+    {#if errorMessage}
+      <p class="text-red-400 text-sm mb-4">{errorMessage}</p>
+    {/if}
 
+    <!-- Analyze Button -->
     <button
-      class="w-full py-3 rounded-xl border border-gray-700 text-gray-400 hover:border-cyan-600 hover:text-cyan-400 transition-all duration-200 text-sm disabled:opacity-50"
-      disabled={isAnalyzing}
-      on:click={handleFolderAnalyze}
-    >
-      📁 Upload Project Folder
-    </button>
-
-    <button
-      disabled={!selectedFile || isAnalyzing}
+      disabled={!selectedPath}
       on:click={handleAnalyze}
-      class="mt-4 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200
-        {selectedFile && !isAnalyzing
+      class="w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2
+        {selectedPath
           ? 'bg-cyan-500 hover:bg-cyan-400 text-gray-950 cursor-pointer'
           : 'bg-gray-800 text-gray-600 cursor-not-allowed'}"
     >
-      {isAnalyzing ? 'Analyzing...' : 'Run Analysis →'}
+      Run Analysis
+      <ArrowRight size={15} />
     </button>
 
   </div>
