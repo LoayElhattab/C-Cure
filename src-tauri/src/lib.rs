@@ -3,9 +3,18 @@ use std::process::Command;
 
 // Find the backend directory relative to the app
 fn backend_path() -> PathBuf {
-    let mut path = std::env::current_dir().unwrap();
-    path.push("backend");
-    path
+    let exe = std::env::current_exe().unwrap();
+    let mut path = exe.parent().unwrap().to_path_buf();
+    for _ in 0..5 {
+        if path.join("backend").exists() {
+            return path.join("backend");
+        }
+        match path.parent() {
+            Some(p) => path = p.to_path_buf(),
+            None => break,
+        }
+    }
+    std::env::current_dir().unwrap().join("backend")
 }
 
 fn run_python(args: Vec<&str>) -> Result<String, String> {
@@ -45,6 +54,11 @@ fn get_report(analysis_id: i32) -> Result<String, String> {
     run_python(vec!["main.py", "report", &id])
 }
 
+#[tauri::command]
+fn get_dashboard() -> Result<String, String> {
+    run_python(vec!["main.py", "dashboard"])
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -55,7 +69,8 @@ pub fn run() {
             analyze_file,
             analyze_folder,
             get_history,
-            get_report
+            get_report,
+            get_dashboard
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")
