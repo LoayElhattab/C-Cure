@@ -1,7 +1,7 @@
 <script>
   import "../app.css";
   import { page } from "$app/stores";
-  import { Upload, LayoutDashboard, Clock, ShieldAlert } from "lucide-svelte";
+  import { Upload, LayoutDashboard, Clock, ShieldAlert, Eye } from 'lucide-svelte';
 </script>
 
 <div class="min-h-screen bg-gray-950 flex flex-col">
@@ -34,6 +34,13 @@
         {$page.url.pathname === '/history' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}">
       <Clock size={14} />
       History
+    </a>
+
+    <a href="/monitor"
+      class="flex items-center gap-2 px-3 h-8 rounded-md text-sm transition-colors
+        {$page.url.pathname === '/monitor' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}">
+      <Eye size={14} />
+      Monitor
     </a>
 
   </nav>

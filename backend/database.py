@@ -241,6 +241,90 @@ def get_dashboard_stats() -> dict:
         "recent_analyses": [dict(r) for r in recent],
     }
 
+def init_monitor_tables():
+    """Create watched projects and file hashes tables."""
+    conn = get_connection()
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS watched_projects (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            name         TEXT NOT NULL,
+            folder_path  TEXT NOT NULL UNIQUE,
+            registered_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS file_hashes (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id  INTEGER NOT NULL,
+            file_path   TEXT NOT NULL,
+            file_hash   TEXT NOT NULL,
+            hashed_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(project_id, file_path),
+            FOREIGN KEY(project_id) REFERENCES watched_projects(id) ON DELETE CASCADE
+        );
+    """)
+    conn.commit()
+    conn.close()
+
+
+def add_watched_project(name: str, folder_path: str) -> dict:
+    """Register a folder for monitoring."""
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO watched_projects (name, folder_path) VALUES (?, ?)",
+            (name, folder_path)
+        )
+        project_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return {"id": project_id, "name": name, "folder_path": folder_path}
+    except sqlite3.IntegrityError:
+        conn.close()
+        return {"error": "This folder is already being watched."}
+
+
+def get_watched_projects() -> list[dict]:
+    """Fetch all watched projects."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM watched_projects ORDER BY registered_at DESC"
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def save_file_hashes(project_id: int, hashes: dict):
+    """Save or update file hashes for a project. hashes = {file_path: hash}"""
+    conn = get_connection()
+    for file_path, file_hash in hashes.items():
+        conn.execute("""
+            INSERT INTO file_hashes (project_id, file_path, file_hash)
+            VALUES (?, ?, ?)
+            ON CONFLICT(project_id, file_path)
+            DO UPDATE SET file_hash = excluded.file_hash, hashed_at = CURRENT_TIMESTAMP
+        """, (project_id, file_path, file_hash))
+    conn.commit()
+    conn.close()
+
+
+def get_file_hashes(project_id: int) -> dict:
+    """Get stored hashes for a project. Returns {file_path: hash}"""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT file_path, file_hash FROM file_hashes WHERE project_id = ?",
+        (project_id,)
+    ).fetchall()
+    conn.close()
+    return {r["file_path"]: r["file_hash"] for r in rows}
+
+
+def remove_watched_project(project_id: int):
+    """Remove a watched project and all its hashes."""
+    conn = get_connection()
+    conn.execute("DELETE FROM watched_projects WHERE id = ?", (project_id,))
+    conn.commit()
+    conn.close()
+
 
 if __name__ == "__main__":
     init_db()

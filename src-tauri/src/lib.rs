@@ -69,6 +69,34 @@ fn check_api() -> Result<String, String> {
     run_python(vec!["main.py", "check_api"])
 }
 
+#[tauri::command]
+fn monitor_register(folder_path: String) -> Result<String, String> {
+    run_python(vec!["monitor.py", "register", &folder_path])
+}
+
+#[tauri::command]
+fn monitor_list() -> Result<String, String> {
+    run_python(vec!["monitor.py", "list"])
+}
+
+#[tauri::command]
+fn monitor_check(project_id: i32) -> Result<String, String> {
+    let id = project_id.to_string();
+    run_python(vec!["monitor.py", "check", &id])
+}
+
+#[tauri::command]
+fn monitor_refresh(project_id: i32) -> Result<String, String> {
+    let id = project_id.to_string();
+    run_python(vec!["monitor.py", "refresh", &id])
+}
+
+#[tauri::command]
+fn monitor_remove(project_id: i32) -> Result<String, String> {
+    let id = project_id.to_string();
+    run_python(vec!["monitor.py", "remove", &id])
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -82,7 +110,12 @@ pub fn run() {
             get_report,
             get_dashboard,
             extract_functions,
-            check_api
+            check_api,
+            monitor_register,
+            monitor_list,
+            monitor_check,
+            monitor_refresh,
+            monitor_remove
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")
