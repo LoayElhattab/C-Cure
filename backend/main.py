@@ -3,7 +3,7 @@ import json
 import os
 from parser import extract_functions
 from inference import analyze_function, check_api_health
-from database import init_db, save_analysis, save_file, save_function, get_all_analyses, get_report
+from database import init_db, save_analysis, save_file, save_function, get_all_analyses, get_report, get_dashboard_stats
 
 # Initialize DB on every startup — safe to call multiple times
 init_db()
@@ -72,6 +72,9 @@ def fetch_report(analysis_id: int) -> dict:
     if not report:
         return {"error": f"No report found for analysis ID {analysis_id}"}
     return report
+
+def fetch_dashboard() -> dict:
+    return get_dashboard_stats()
 
 def run_analysis_folder(folder_path: str) -> dict:
     """
@@ -176,6 +179,10 @@ def main():
             print(json.dumps({"error": "No folder path provided"}))
             sys.exit(1)
         result = run_analysis_folder(sys.argv[2])
+        print(json.dumps(result, indent=2))
+
+    elif command == "dashboard":
+        result = fetch_dashboard()
         print(json.dumps(result, indent=2))
 
     else:
