@@ -82,11 +82,110 @@
 
 {#if loading}
   <div
-    class="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white flex items-center justify-center"
+    class="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col"
   >
-    <p class="text-gray-500 dark:text-gray-400 animate-pulse">
-      Loading report...
-    </p>
+    <!-- Top Bar skeleton -->
+    <header
+      class="border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center justify-between"
+    >
+      <div>
+        <div
+          class="h-5 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse"
+        ></div>
+        <div
+          class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48 mt-1 animate-pulse"
+        ></div>
+      </div>
+      <div class="flex gap-3">
+        <div
+          class="h-7 bg-gray-200 dark:bg-gray-700 rounded w-20 animate-pulse"
+        ></div>
+        <div
+          class="h-7 bg-gray-200 dark:bg-gray-700 rounded-lg w-32 animate-pulse"
+        ></div>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Left Panel skeleton -->
+      <aside
+        class="w-72 border-r border-gray-200 dark:border-gray-800 flex flex-col"
+      >
+        <div class="flex border-b border-gray-200 dark:border-gray-800 text-sm">
+          {#each ["all", "vulnerable", "safe"] as _}
+            <div class="flex-1 py-2">
+              <div
+                class="h-4 bg-gray-200 dark:bg-gray-700 rounded mx-auto w-12 animate-pulse"
+              ></div>
+            </div>
+          {/each}
+        </div>
+        <div class="flex-1 overflow-y-auto">
+          {#each Array(5) as _}
+            <div
+              class="px-4 py-3 border-b border-gray-200 dark:border-gray-800"
+            >
+              <div
+                class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"
+              ></div>
+              <div
+                class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mt-1 animate-pulse"
+              ></div>
+            </div>
+          {/each}
+        </div>
+      </aside>
+
+      <!-- Right Panel skeleton -->
+      <main class="flex-1 p-6 overflow-y-auto">
+        <div class="max-w-3xl">
+          <!-- Function Header skeleton -->
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <div
+                class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-40 animate-pulse"
+              ></div>
+              <div
+                class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-64 mt-1 animate-pulse"
+              ></div>
+              <div
+                class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48 mt-2 animate-pulse"
+              ></div>
+            </div>
+            <div class="flex flex-col items-end gap-2">
+              <div
+                class="h-5 bg-gray-200 dark:bg-gray-700 rounded-full w-20 animate-pulse"
+              ></div>
+              <div
+                class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Code Viewer skeleton -->
+          <div
+            class="rounded-xl border border-gray-300 dark:border-gray-700 overflow-hidden"
+          >
+            <div
+              class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700"
+            >
+              <div
+                class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-8 animate-pulse"
+              ></div>
+              <div
+                class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse"
+              ></div>
+            </div>
+            <div class="h-64 bg-white dark:bg-[#282c34] animate-pulse"></div>
+          </div>
+
+          <!-- CWE Warning skeleton -->
+          <div
+            class="mt-4 h-24 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse"
+          ></div>
+        </div>
+      </main>
+    </div>
   </div>
 {:else if error}
   <div
@@ -105,7 +204,6 @@
   <div
     class="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col"
   >
-    <!-- Top Bar -->
     <header
       class="border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex items-center justify-between"
     >
@@ -133,7 +231,6 @@
     </header>
 
     <div class="flex flex-1 overflow-hidden">
-      <!-- Left Panel -->
       <aside
         class="w-72 border-r border-gray-200 dark:border-gray-800 flex flex-col"
       >
@@ -190,11 +287,9 @@
         </div>
       </aside>
 
-      <!-- Right Panel -->
       <main class="flex-1 p-6 overflow-y-auto">
         {#if selected}
           <div class="max-w-3xl">
-            <!-- Function Header -->
             <div class="flex items-start justify-between mb-4">
               <div>
                 <h2 class="text-xl font-mono font-bold">
@@ -235,11 +330,9 @@
               </div>
             </div>
 
-            <!-- Code Viewer -->
             <div
               class="rounded-xl border border-gray-300 dark:border-gray-700 overflow-hidden"
             >
-              <!-- Code toolbar -->
               <div
                 class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700"
               >
@@ -262,11 +355,9 @@
                 </button>
               </div>
 
-              <!-- Code with line numbers -->
               <div
                 class="flex overflow-x-auto bg-white dark:bg-[#282c34] text-sm font-mono"
               >
-                <!-- Line numbers -->
                 <div
                   class="select-none text-right pr-4 pl-4 py-4 text-gray-400 dark:text-gray-500 border-r border-gray-300 dark:border-gray-700 leading-6 min-w-[3rem]"
                 >
@@ -275,14 +366,12 @@
                   {/each}
                 </div>
 
-                <!-- Highlighted code -->
                 <pre class="flex-1 py-4 px-4 leading-6 overflow-x-auto"><code
                     >{@html highlightedCode}</code
                   ></pre>
               </div>
             </div>
 
-            <!-- CWE Warning -->
             {#if selected.cwe}
               <div
                 class="mt-4 bg-red-100 dark:bg-red-950 border border-red-200 dark:border-red-900 rounded-xl p-4 text-sm text-red-600 dark:text-red-300"

@@ -66,9 +66,59 @@
     </div>
 
     {#if loading}
-      <p class="text-gray-500 dark:text-gray-400 animate-pulse">
-        Loading history...
-      </p>
+      <div
+        class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
+      >
+        <table class="w-full text-sm">
+          <thead
+            class="border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 text-xs uppercase"
+          >
+            <tr>
+              <th class="text-left px-6 py-3">Project</th>
+              <th class="text-left px-6 py-3">Date</th>
+              <th class="text-left px-6 py-3">Functions</th>
+              <th class="text-left px-6 py-3">Vulnerable</th>
+              <th class="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each Array(4) as _}
+              <tr class="border-b border-gray-200 dark:border-gray-800">
+                <td class="px-6 py-4">
+                  <div
+                    class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"
+                  ></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div
+                    class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 animate-pulse"
+                  ></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div
+                    class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"
+                  ></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div
+                    class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"
+                  ></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex justify-end gap-3">
+                    <div
+                      class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 animate-pulse"
+                    ></div>
+                    <div
+                      class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-4 animate-pulse"
+                    ></div>
+                  </div>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
     {:else if history.length === 0}
       <div class="text-center mt-20 text-gray-500 dark:text-gray-400">
         <p class="text-4xl mb-4">📭</p>

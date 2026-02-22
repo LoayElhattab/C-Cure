@@ -208,11 +208,131 @@
     </div>
 
     {#if loading}
-      <p class="text-gray-500 dark:text-gray-400 animate-pulse">Loading...</p>
+      <!-- KPI Row skeleton -->
+      <div class="grid grid-cols-4 gap-4 mb-6">
+        {#each Array(4) as _}
+          <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5"
+          >
+            <div
+              class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-2 animate-pulse"
+            ></div>
+            <div
+              class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2 animate-pulse"
+            ></div>
+          </div>
+        {/each}
+      </div>
+
+      <!-- CWE + Severity skeleton -->
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div
+          class="col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5"
+        >
+          <div
+            class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4 animate-pulse"
+          ></div>
+          <div
+            class="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+          ></div>
+        </div>
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5"
+        >
+          <div
+            class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4 animate-pulse"
+          ></div>
+          <div
+            class="h-48 bg-gray-200 dark:bg-gray-700 rounded-full mx-auto w-48 animate-pulse"
+          ></div>
+        </div>
+      </div>
+
+      <!-- File ratio + Confidence skeleton -->
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5"
+        >
+          <div
+            class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4 animate-pulse"
+          ></div>
+          <div
+            class="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+          ></div>
+        </div>
+        <div
+          class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5"
+        >
+          <div
+            class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-1 animate-pulse"
+          ></div>
+          <div
+            class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4 animate-pulse"
+          ></div>
+          <div
+            class="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Recent Analyses skeleton -->
+      <div
+        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden"
+      >
+        <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+          <div
+            class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"
+          ></div>
+        </div>
+        <table class="w-full text-sm">
+          <thead
+            class="text-gray-500 dark:text-gray-400 text-xs uppercase border-b border-gray-200 dark:border-gray-800"
+          >
+            <tr>
+              <th class="text-left px-5 py-3">Project</th>
+              <th class="text-left px-5 py-3">Date</th>
+              <th class="text-left px-5 py-3">Functions</th>
+              <th class="text-left px-5 py-3">Vulnerable</th>
+              <th class="px-5 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each Array(3) as _}
+              <tr class="border-b border-gray-200 dark:border-gray-800">
+                <td class="px-5 py-3">
+                  <div
+                    class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"
+                  ></div>
+                </td>
+                <td class="px-5 py-3">
+                  <div
+                    class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 animate-pulse"
+                  ></div>
+                </td>
+                <td class="px-5 py-3">
+                  <div
+                    class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"
+                  ></div>
+                </td>
+                <td class="px-5 py-3">
+                  <div
+                    class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"
+                  ></div>
+                </td>
+                <td class="px-5 py-3 text-right">
+                  <div
+                    class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-12 ml-auto animate-pulse"
+                  ></div>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
     {:else if error}
       <p class="text-red-500 dark:text-red-400">{error}</p>
     {:else}
-      <!-- KPI Row -->
+      <!-- ... (rest of the original content unchanged) -->
       <div class="grid grid-cols-4 gap-4 mb-6">
         {#each [{ label: "Analyses Run", value: stats.kpis.total_analyses ?? 0, color: "text-cyan-600 dark:text-cyan-400" }, { label: "Functions Scanned", value: stats.kpis.total_functions ?? 0, color: "text-blue-600 dark:text-blue-400" }, { label: "Vulnerable", value: stats.kpis.total_vulnerable ?? 0, color: "text-red-600 dark:text-red-400" }, { label: "Clean", value: stats.kpis.total_safe ?? 0, color: "text-green-600 dark:text-green-400" }] as kpi}
           <div
@@ -228,7 +348,6 @@
         {/each}
       </div>
 
-      <!-- CWE + Severity -->
       <div class="grid grid-cols-3 gap-4 mb-4">
         <div
           class="col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5"
@@ -283,7 +402,6 @@
         </div>
       </div>
 
-      <!-- File ratio + Confidence -->
       <div class="grid grid-cols-2 gap-4 mb-4">
         <div
           class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5"
@@ -319,7 +437,6 @@
         </div>
       </div>
 
-      <!-- Recent Analyses -->
       <div
         class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden"
       >
