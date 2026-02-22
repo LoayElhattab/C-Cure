@@ -14,6 +14,9 @@
   let severityCanvas;
   let fileCanvas;
   let confidenceCanvas;
+  let trendCanvas;
+
+  let trendData = [];
 
   const SEVERITY_COLORS = {
     Critical: "#ef4444",
@@ -31,6 +34,14 @@
         loading = false;
         return;
       }
+
+      try {
+        const rawTrend = await invoke("get_trend_data");
+        trendData = JSON.parse(rawTrend);
+      } catch (e) {
+        console.error("Failed to fetch trend data", e);
+      }
+
       loading = false;
       setTimeout(() => drawCharts(), 50);
     } catch (err) {
@@ -44,6 +55,7 @@
     drawSeverity();
     drawFiles();
     drawConfidence();
+    drawTrend();
   }
 
   function drawCWE() {
@@ -189,6 +201,53 @@
           y: {
             ticks: { color: $theme === "dark" ? "#9ca3af" : "#6b7280" },
             grid: { color: $theme === "dark" ? "#1f2937" : "#e5e7eb" },
+          },
+        },
+      },
+    });
+  }
+
+  function drawTrend() {
+    if (!trendCanvas || !trendData.length) return;
+    new Chart(trendCanvas, {
+      type: "line",
+      data: {
+        labels: trendData.map((d) => {
+          return d.timestamp.split(" ")[0] || d.timestamp;
+        }),
+        datasets: [
+          {
+            label: "Vulnerable Functions",
+            data: trendData.map((d) => d.vuln_count),
+            borderColor: "#06b6d4",
+            backgroundColor: "rgba(6, 182, 212, 0.2)",
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2,
+            pointBackgroundColor: "#06b6d4",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.raw} vulnerable`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: $theme === "dark" ? "#9ca3af" : "#6b7280" },
+            grid: { display: false },
+          },
+          y: {
+            ticks: { color: $theme === "dark" ? "#d1d5db" : "#374151" },
+            grid: { color: $theme === "dark" ? "#1f2937" : "#e5e7eb" },
+            beginAtZero: true,
           },
         },
       },
@@ -491,6 +550,29 @@
             {/each}
           </tbody>
         </table>
+      </div>
+
+      <!-- Vulnerability Trend Line Chart -->
+      <div
+        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 mt-4"
+      >
+        <div class="mb-4">
+          <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Vulnerability Trend Over Time
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Number of vulnerable functions per analysis
+          </p>
+        </div>
+        {#if trendData.length > 0}
+          <div class="h-80 relative w-full">
+            <canvas bind:this={trendCanvas} class="w-full h-full"></canvas>
+          </div>
+        {:else}
+          <p class="text-gray-500 dark:text-gray-400 text-sm text-center py-8">
+            Not enough analyses yet.
+          </p>
+        {/if}
       </div>
     {/if}
   </div>

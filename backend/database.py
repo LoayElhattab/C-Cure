@@ -241,6 +241,21 @@ class DatabaseManager:
             "recent_analyses": [dict(r) for r in recent],
         }
 
+    def get_trend_data(self) -> list[dict]:
+        conn = self.get_connection()
+        rows = conn.execute("""
+            SELECT
+                a.timestamp,
+                SUM(CASE WHEN f.verdict = 'vulnerable' THEN 1 ELSE 0 END) AS vuln_count
+            FROM analyses a
+            LEFT JOIN files fi ON fi.analysis_id = a.id
+            LEFT JOIN functions f ON f.file_id = fi.id
+            GROUP BY a.id
+            ORDER BY a.timestamp ASC
+        """).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
     # ── Monitor ───────────────────────────────────────────
 
     def add_watched_project(self, name: str, folder_path: str) -> dict:

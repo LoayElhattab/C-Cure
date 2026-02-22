@@ -137,6 +137,9 @@ def main():
     elif command == "dashboard":
         print(json.dumps(db.get_dashboard_stats(), indent=2))
 
+    elif command == "get_trend_data":
+        print(json.dumps(db.get_trend_data(), indent=2))
+
     elif command == "extract_functions":
         if len(sys.argv) < 3:
             print(json.dumps({"error": "No file path provided"}))

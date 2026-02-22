@@ -60,6 +60,11 @@ fn get_dashboard() -> Result<String, String> {
 }
 
 #[tauri::command]
+fn get_trend_data() -> Result<String, String> {
+    run_python(vec!["main.py", "get_trend_data"])
+}
+
+#[tauri::command]
 fn extract_functions(file_path: String) -> Result<String, String> {
     run_python(vec!["main.py", "extract_functions", &file_path])
 }
@@ -135,6 +140,7 @@ pub fn run() {
             get_history,
             get_report,
             get_dashboard,
+            get_trend_data,
             extract_functions,
             check_api,
             monitor_register,
