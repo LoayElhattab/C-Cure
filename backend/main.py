@@ -1,6 +1,11 @@
 import sys
 import json
 import os
+import tempfile
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 from parser import extract_functions
 from inference import client
 from database import db
@@ -156,6 +161,59 @@ def main():
             sys.exit(1)
         client.save_url(sys.argv[2])
         print(json.dumps({"saved": True}))
+
+    elif command == "generate_pdf":
+        if len(sys.argv) < 3:
+            print(json.dumps({"error": "No analysis ID provided"}))
+            sys.exit(1)
+        analysis_id = int(sys.argv[2])
+        report = db.get_report(analysis_id)
+        if not report:
+            print(json.dumps({"error": "Report not found"}))
+            sys.exit(1)
+
+        pdf_path = os.path.join(tempfile.gettempdir(), f"c-cure-report-{analysis_id}.pdf")
+        doc = SimpleDocTemplate(pdf_path, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+        styles = getSampleStyleSheet()
+        flowables = []
+
+        # Header
+        flowables.append(Paragraph("C-Cure Vulnerability Report", styles['Title']))
+        flowables.append(Paragraph(f"Project: {report.get('project_name', 'Unknown')}", styles['Heading2']))
+        flowables.append(Paragraph(f"Date: {report.get('timestamp', 'Unknown')}", styles['Normal']))
+        flowables.append(Spacer(1, 20))
+
+        # Summary
+        total_vuln = sum(1 for f in report.get('files', []) for fn in f.get('functions', []) if fn.get('verdict') == 'vulnerable')
+        total_fns = sum(len(f.get('functions', [])) for f in report.get('files', []))
+        flowables.append(Paragraph("Summary", styles['Heading3']))
+        flowables.append(Paragraph(f"Total Functions Scanned: {total_fns}", styles['Normal']))
+        flowables.append(Paragraph(f"Vulnerable Functions: <font color='red'>{total_vuln}</font>", styles['Normal']))
+        flowables.append(Spacer(1, 20))
+
+        # Per-file sections
+        for file_data in report.get('files', []):
+            flowables.append(Paragraph(file_data.get('file_path', 'Unknown File'), styles['Heading3']))
+            for fn in file_data.get('functions', []):
+                fn_name = fn.get('function_name', 'Unknown')
+                start = fn.get('start_line', '?')
+                end = fn.get('end_line', '?')
+                verdict = fn.get('verdict', 'safe')
+                
+                heading_color = "red" if verdict == "vulnerable" else "green"
+                flowables.append(Paragraph(f"<b>{fn_name}</b> (Lines {start}-{end}) - <font color='{heading_color}'>{verdict.upper()}</font>", styles['Normal']))
+                
+                if verdict == "vulnerable":
+                    cwe = fn.get('cwe', 'Unknown')
+                    severity = fn.get('severity', 'Unknown')
+                    conf = fn.get('confidence', 0) * 100
+                    flowables.append(Paragraph(f"CWE: {cwe} | Severity: {severity} | Confidence: {conf:.1f}%", styles['Normal']))
+                
+                flowables.append(Spacer(1, 10))
+            flowables.append(Spacer(1, 10))
+
+        doc.build(flowables)
+        print(json.dumps({"path": pdf_path}))
 
     else:
         print(json.dumps({"error": f"Unknown command: {command}"}))

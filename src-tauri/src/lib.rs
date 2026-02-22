@@ -113,6 +113,16 @@ fn save_settings(kaggle_url: String) -> Result<String, String> {
     run_python(vec!["main.py", "save_settings", &kaggle_url])
 }
 
+#[tauri::command]
+fn generate_pdf(analysis_id: u32) -> Result<String, String> {
+    run_python(vec!["main.py", "generate_pdf", &analysis_id.to_string()])
+}
+
+#[tauri::command]
+fn open_path(path: String) -> Result<(), String> {
+    open::that(&path).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -134,7 +144,9 @@ pub fn run() {
             monitor_remove,
             delete_analysis,
             get_settings,
-            save_settings
+            save_settings,
+            generate_pdf,
+            open_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")

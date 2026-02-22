@@ -4,8 +4,9 @@
   import { onMount } from "svelte";
   import hljs from "highlight.js/lib/core";
   import cpp from "highlight.js/lib/languages/cpp";
-  import { Copy, Check } from "lucide-svelte";
+  import { Copy, Check, Download } from "lucide-svelte";
   import { theme } from "$lib/theme";
+  import { success, error as errorToast } from "$lib/toast";
 
   hljs.registerLanguage("cpp", cpp);
 
@@ -215,12 +216,31 @@
           {report.timestamp} · {allFunctions.length} functions · {vulnCount()} vulnerable
         </p>
       </div>
-      <div class="flex gap-3">
+      <div class="flex items-center gap-3">
         <a
           href="/history"
           class="text-sm text-gray-500 dark:text-gray-400 hover:text-cyan-500 dark:hover:text-cyan-400 transition-colors"
           >← History</a
         >
+        <button
+          class="flex items-center gap-2 text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 font-semibold px-4 py-1.5 rounded-lg transition-colors"
+          on:click={async () => {
+            try {
+              const raw = await invoke<string>("generate_pdf", {
+                analysisId: parseInt($page.params.id),
+              });
+              const result = JSON.parse(raw);
+              if (result.error) throw new Error(result.error);
+              await invoke("open_path", { path: result.path });
+              success("Report exported and opened");
+            } catch (err) {
+              errorToast("Failed to export PDF: " + err);
+            }
+          }}
+        >
+          <Download size={14} />
+          Export PDF
+        </button>
         <a
           href="/"
           class="text-sm bg-cyan-500 hover:bg-cyan-600 dark:hover:bg-cyan-400 text-gray-900 dark:text-gray-950 font-semibold px-4 py-1.5 rounded-lg transition-colors"
