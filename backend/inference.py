@@ -18,11 +18,26 @@ class InferenceClient:
         "CWE-476": {"name": "NULL Pointer Dereference", "severity": "High"},
     }
 
-    def __init__(self, api_url: str = None):
-        self.api_url = api_url or os.environ.get(
-            "KAGGLE_API_URL",
-            "https://your-ngrok-url-here.ngrok-free.app"
-        )
+    def __init__(self):
+        self.api_url = self._load_url()
+
+    def _load_url(self) -> str:
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        if os.path.exists(config_path):
+            try:
+                import json
+                with open(config_path) as f:
+                    return json.load(f).get('kaggle_url', '')
+            except Exception:
+                pass
+        return ''
+
+    def save_url(self, url: str):
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        import json
+        with open(config_path, 'w') as f:
+            json.dump({'kaggle_url': url}, f)
+        self.api_url = url
 
     def check_health(self) -> bool:
         try:

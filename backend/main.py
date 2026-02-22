@@ -142,6 +142,21 @@ def main():
     elif command == "check_api":
         print(json.dumps({"reachable": client.check_health()}))
 
+    elif command == "get_settings":
+        config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        if os.path.exists(config_path):
+            with open(config_path) as f:
+                print(json.dumps(json.load(f)))
+        else:
+            print(json.dumps({"kaggle_url": ""}))
+
+    elif command == "save_settings":
+        if len(sys.argv) < 3:
+            print(json.dumps({"error": "No URL provided"}))
+            sys.exit(1)
+        client.save_url(sys.argv[2])
+        print(json.dumps({"saved": True}))
+
     else:
         print(json.dumps({"error": f"Unknown command: {command}"}))
         sys.exit(1)

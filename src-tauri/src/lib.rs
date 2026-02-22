@@ -97,6 +97,22 @@ fn monitor_remove(project_id: i32) -> Result<String, String> {
     run_python(vec!["monitor.py", "remove", &id])
 }
 
+#[tauri::command]
+fn delete_analysis(analysis_id: i32) -> Result<String, String> {
+    let id = analysis_id.to_string();
+    run_python(vec!["main.py", "delete_analysis", &id])
+}
+
+#[tauri::command]
+fn get_settings() -> Result<String, String> {
+    run_python(vec!["main.py", "get_settings"])
+}
+
+#[tauri::command]
+fn save_settings(kaggle_url: String) -> Result<String, String> {
+    run_python(vec!["main.py", "save_settings", &kaggle_url])
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -115,7 +131,10 @@ pub fn run() {
             monitor_list,
             monitor_check,
             monitor_refresh,
-            monitor_remove
+            monitor_remove,
+            delete_analysis,
+            get_settings,
+            save_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")
