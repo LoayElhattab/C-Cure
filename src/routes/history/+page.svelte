@@ -1,12 +1,17 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
-  import { Trash2 } from "lucide-svelte";
+  import { Trash2, X } from "lucide-svelte";
   import { success, error as errorToast } from "$lib/toast";
 
   let history: any[] = [];
   let loading = true;
   let deleting: Record<number, boolean> = {};
+  let searchTerm = "";
+
+  $: filteredHistory = history.filter((item) =>
+    item.project_name.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   onMount(async () => {
     await loadHistory();
@@ -64,6 +69,28 @@
         + New Analysis
       </a>
     </div>
+
+    {#if !loading && history.length > 0}
+      <div
+        class="mb-6 flex items-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-2"
+      >
+        <input
+          type="text"
+          bind:value={searchTerm}
+          placeholder="Search by project name..."
+          class="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+        />
+        {#if searchTerm.length > 0}
+          <button
+            on:click={() => (searchTerm = "")}
+            class="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            title="Clear search"
+          >
+            <X size={16} />
+          </button>
+        {/if}
+      </div>
+    {/if}
 
     {#if loading}
       <div
@@ -129,6 +156,17 @@
           >← Go to Upload</a
         >
       </div>
+    {:else if filteredHistory.length === 0}
+      <div class="text-center mt-20 text-gray-500 dark:text-gray-400">
+        <p class="text-4xl mb-4">🔍</p>
+        <p>No matching analyses found.</p>
+        <button
+          on:click={() => (searchTerm = "")}
+          class="mt-4 inline-block text-cyan-500 dark:text-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-300 text-sm"
+        >
+          Clear filter
+        </button>
+      </div>
     {:else}
       <div
         class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden"
@@ -146,7 +184,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each history as item}
+            {#each filteredHistory as item}
               <tr
                 class="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
