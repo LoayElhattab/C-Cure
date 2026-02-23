@@ -40,9 +40,25 @@ def analyze_function(code: str) -> dict:
         )
         classify_response.raise_for_status()
         data = classify_response.json()
+        import sys
+        print(f"[DEBUG] Raw API response: {data}", file=sys.stderr)
+
         result = data.get("result", {})
         output = result.get("output") if isinstance(result, dict) else result
         confidence = result.get("confidence") if isinstance(result, dict) else data.get("confidence")
+
+        # Also check top-level confidence (some API versions put it there)
+        if confidence is None:
+            confidence = data.get("confidence")
+
+        # Ensure confidence is always a number, never a dict
+        if isinstance(confidence, dict):
+            confidence = confidence.get("output", confidence.get("value", 0.0))
+        if confidence is not None:
+            try:
+                confidence = float(confidence)
+            except (TypeError, ValueError):
+                confidence = None
 
         # Check if the code is safe
         if isinstance(output, str) and output.lower() in ("code is safe", "safe"):
@@ -51,7 +67,7 @@ def analyze_function(code: str) -> dict:
                 "cwe": "safe",
                 "cwe_name": "safe",
                 "severity": "safe",
-                "confidence": confidence or 1,
+                "confidence": confidence if confidence is not None else 1.0,
                 "family": "safe",
             }
 
