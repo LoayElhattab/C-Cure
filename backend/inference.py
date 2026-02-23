@@ -1,7 +1,7 @@
 import requests
 
 # Your ML teammate pastes their ngrok URL here when the notebook is running
-KAGGLE_API_URL = "https://your-ngrok-url-here.ngrok-free.app"
+KAGGLE_API_URL = "https://compressibly-platinous-emiko.ngrok-free.dev"
 
 FAMILY_MAP = {
     "memory_corruption": ["CWE-125", "CWE-787"],
@@ -21,7 +21,7 @@ CWE_INFO = {
 
 def check_api_health() -> bool:
     try:
-        r = requests.get(f"{KAGGLE_API_URL}/health", timeout=5)
+        r = requests.get(f"{KAGGLE_API_URL}", timeout=5)
         return r.status_code == 200
     except Exception:
         return False
@@ -33,46 +33,37 @@ def analyze_function(code: str) -> dict:
     Returns a result dict ready to be saved to SQLite.
     """
     try:
-        # Step 1: Triage
-        triage_response = requests.post(
-            f"{KAGGLE_API_URL}/triage",
-            json={"code": code},
-            timeout=30
-        )
-        triage_response.raise_for_status()
-        family = triage_response.json().get("family", "safe")
-
-        # Step 2: If safe, return early
-        if family == "safe":
-            return {
-                "verdict": "safe",
-                "cwe": None,
-                "cwe_name": None,
-                "severity": None,
-                "confidence": None,
-                "family": None,
-            }
-
-        # Step 3: Classify
         classify_response = requests.post(
-            f"{KAGGLE_API_URL}/classify",
-            json={"code": code, "family": family},
+            f"{KAGGLE_API_URL}/predict",
+            json={"code": code},
             timeout=30
         )
         classify_response.raise_for_status()
         data = classify_response.json()
-        cwe = data.get("cwe")
-        confidence = data.get("confidence")
+        result = data.get("result", {})
+        output = result.get("output") if isinstance(result, dict) else result
+        confidence = result.get("confidence") if isinstance(result, dict) else data.get("confidence")
 
+        # Check if the code is safe
+        if isinstance(output, str) and output.lower() in ("code is safe", "safe"):
+            return {
+                "verdict": "safe",
+                "cwe": "safe",
+                "cwe_name": "safe",
+                "severity": "safe",
+                "confidence": confidence or 1,
+                "family": "safe",
+            }
+
+        # Vulnerable: output is a list like ["CWE-476"]
+        cwe = output[0] if isinstance(output, list) else output
         cwe_meta = CWE_INFO.get(cwe, {"name": "Unknown", "severity": "Unknown"})
-
         return {
             "verdict": "vulnerable",
             "cwe": cwe,
             "cwe_name": cwe_meta["name"],
             "severity": cwe_meta["severity"],
             "confidence": confidence,
-            "family": family,
         }
 
     except requests.exceptions.ConnectionError:
