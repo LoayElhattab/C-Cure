@@ -3,19 +3,26 @@
   import { Trash2, Search, X, Plus } from "lucide-svelte";
   import { loadHistory, deleteAnalysis } from "./logic";
 
-  let history: any[] = [];
-  let loading = true;
-  let deleting: Record<number, boolean> = {};
-  let confirmId: number | null = null; // which row is showing inline confirm
-  let searchTerm = "";
+  let history = $state<any[]>([]);
+  let loading = $state(true);
+  let deleting = $state<Record<number, boolean>>({});
+  let confirmId = $state<number | null>(null); // which row is showing inline confirm
+  let searchTerm = $state("");
 
-  $: filteredHistory = history.filter((item) =>
+  let filteredHistory = $derived(history.filter((item) =>
     item.project_name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  ));
 
   onMount(async () => {
-    history = await loadHistory();
-    loading = false;
+    loading = true;
+    try {
+      history = await loadHistory();
+    } catch (err) {
+      console.error("Failed to load analysis history", err);
+      history = [];
+    } finally {
+      loading = false;
+    }
   });
 
   function requestDelete(id: number) {
@@ -27,13 +34,16 @@
   }
 
   async function confirmDelete(id: number) {
-    deleting[id] = true;
-    deleting = deleting;
+    deleting = { ...deleting, [id]: true };
     confirmId = null;
-    const deleted = await deleteAnalysis(id);
-    if (deleted) history = history.filter((h) => h.id !== id);
-    deleting[id] = false;
-    deleting = deleting;
+    try {
+      const deleted = await deleteAnalysis(id);
+      if (deleted) history = history.filter((h) => h.id !== id);
+    } catch (err) {
+      console.error("Failed to delete analysis", err);
+    } finally {
+      deleting = { ...deleting, [id]: false };
+    }
   }
 </script>
 

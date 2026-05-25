@@ -53,13 +53,16 @@
   let ringOffset = $derived(mounted ? RING_C * (1 - vulnPct / 100) : RING_C);
 
   onMount(async () => {
+    loading = true;
     try {
       const data = await fetchAnalysisSummary($page.params.id ?? "0");
       report = data;
     } catch (e: any) {
-      error = e.message;
+      console.error("Failed to load analysis summary", e);
+      error = e.message ?? String(e);
+    } finally {
+      loading = false;
     }
-    loading = false;
     setTimeout(() => (mounted = true), 80);
   });
 </script>

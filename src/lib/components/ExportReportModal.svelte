@@ -101,22 +101,29 @@
         if (isExporting) return;
 
         errorMessage = "";
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const filePath = await save({
-            defaultPath: defaultFileName(selectedOption),
-            filters: [
-                {
-                    name: selectedOption.label,
-                    extensions: [selectedOption.extension],
-                },
-            ],
-        });
+        try {
+            const { save } = await import("@tauri-apps/plugin-dialog");
+            const filePath = await save({
+                defaultPath: defaultFileName(selectedOption),
+                filters: [
+                    {
+                        name: selectedOption.label,
+                        extensions: [selectedOption.extension],
+                    },
+                ],
+            });
 
-        if (filePath) {
-            selectedPath = withExpectedExtension(
-                filePath,
-                selectedOption.extension,
-            );
+            if (filePath) {
+                selectedPath = withExpectedExtension(
+                    filePath,
+                    selectedOption.extension,
+                );
+            }
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            errorMessage = `Could not choose export destination: ${message}`;
+            console.error("Failed to choose export destination", err);
+            errorToast(errorMessage);
         }
     }
 
@@ -139,6 +146,7 @@
                 analysisId: parseInt(analysisId),
                 format: selectedFormat,
                 filePath: targetPath,
+                executiveSummaryOnly: selectedFormat === "pdf_executive",
             });
 
             success(`${selectedOption.label} exported successfully.`);
@@ -147,6 +155,7 @@
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             errorMessage = `Export failed: ${message}`;
+            console.error("Failed to export report", err);
             errorToast(errorMessage);
         } finally {
             isExporting = false;

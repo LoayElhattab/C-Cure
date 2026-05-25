@@ -153,13 +153,15 @@ pub fn save_settings(
 pub async fn generate_pdf(
     state: tauri::State<'_, AppState>,
     analysis_id: u32,
-    settings: Option<ExportSettings>,
+    executive_summary_only: bool,
 ) -> Result<Value, AppError> {
     let report =
         crate::db::analysis_repo::get_vulnerability_report(&state.pool, analysis_id as i32)
             .await?
             .ok_or_else(|| AppError::Custom("Report not found".into()))?;
-    let settings = settings.unwrap_or_default();
+    let settings = ExportSettings {
+        executive_summary_only,
+    };
     let path = tauri::async_runtime::spawn_blocking(move || {
         crate::report::generate_pdf(&report, settings)
     })
@@ -175,6 +177,7 @@ pub async fn export_report(
     analysis_id: i64,
     format: String,
     file_path: String,
+    executive_summary_only: bool,
 ) -> Result<Value, AppError> {
     match format.as_str() {
         "pdf_technical" | "pdf_executive" => {
@@ -185,15 +188,12 @@ pub async fn export_report(
             .await?
             .ok_or_else(|| AppError::Custom("Report not found".into()))?;
 
-            let executive_summary_only = format == "pdf_executive";
             let destination = PathBuf::from(&file_path);
+            let settings = ExportSettings {
+                executive_summary_only,
+            };
             tauri::async_runtime::spawn_blocking(move || {
-                let generated_path = crate::report::generate_pdf(
-                    &report,
-                    ExportSettings {
-                        executive_summary_only,
-                    },
-                )?;
+                let generated_path = crate::report::generate_pdf(&report, settings)?;
                 std::fs::copy(&generated_path, &destination).map_err(|e| {
                     AppError::Custom(format!("Failed to save PDF export: {e}"))
                 })?;

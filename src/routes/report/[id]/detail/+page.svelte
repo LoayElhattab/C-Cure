@@ -156,6 +156,7 @@
             currentPage = pageNumber;
             window.scrollTo({ top: 0, behavior: "smooth" });
         } catch (e: any) {
+            console.error("Failed to load report functions page", e);
             error = e.message ?? String(e);
         } finally {
             isLoading = false;
@@ -207,6 +208,7 @@
             });
             await loadPage(1);
         } catch (e: any) {
+            console.error("Failed to load report details", e);
             error = e.message ?? String(e);
         } finally {
             loading = false;
