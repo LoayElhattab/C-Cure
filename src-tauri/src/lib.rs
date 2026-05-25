@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use tauri::Manager;
 
 pub struct AppState {
-    pub pool: deadpool_sqlite::Pool,
+    pub pool: db::DbPool,
     pub reqwest_client: Client,
     pub app_data_dir: PathBuf,
 }
@@ -53,7 +53,10 @@ pub fn run() {
             commands::analyze_file,
             commands::analyze_folder,
             commands::get_history,
+            commands::get_analysis_summary,
             commands::get_report,
+            commands::get_functions_count,
+            commands::get_functions_page,
             commands::get_statistics,
             commands::get_vuln_count,
             commands::extract_functions,

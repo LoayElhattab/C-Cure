@@ -4,8 +4,8 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
+use crate::db::DbPool;
 use crate::error::AppError;
-use deadpool_sqlite::Pool;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct MonitorChangeResult {
@@ -60,7 +60,7 @@ fn scan_folder(folder_path: &Path) -> HashMap<String, String> {
 }
 
 pub async fn register_project(
-    pool: &Pool,
+    pool: &DbPool,
     folder_path: &str,
 ) -> Result<serde_json::Value, AppError> {
     let path = Path::new(folder_path);
@@ -96,7 +96,10 @@ pub async fn register_project(
     }))
 }
 
-pub async fn check_changes(pool: &Pool, project_id: i32) -> Result<MonitorChangeResult, AppError> {
+pub async fn check_changes(
+    pool: &DbPool,
+    project_id: i32,
+) -> Result<MonitorChangeResult, AppError> {
     let projects: Vec<crate::db::WatchedProject> =
         crate::db::projects_repo::get_watched_projects(pool).await?;
     let project = projects.into_iter().find(|p| p.id == project_id);
@@ -140,7 +143,7 @@ pub async fn check_changes(pool: &Pool, project_id: i32) -> Result<MonitorChange
     })
 }
 
-pub async fn refresh_hashes(pool: &Pool, project_id: i32) -> Result<serde_json::Value, AppError> {
+pub async fn refresh_hashes(pool: &DbPool, project_id: i32) -> Result<serde_json::Value, AppError> {
     let projects: Vec<crate::db::WatchedProject> =
         crate::db::projects_repo::get_watched_projects(pool).await?;
     let project = projects.into_iter().find(|p| p.id == project_id);
@@ -159,7 +162,7 @@ pub async fn refresh_hashes(pool: &Pool, project_id: i32) -> Result<serde_json::
 }
 
 pub async fn unregister_project(
-    pool: &Pool,
+    pool: &DbPool,
     project_id: i32,
 ) -> Result<serde_json::Value, AppError> {
     crate::db::projects_repo::remove_watched_project(pool, project_id).await?;

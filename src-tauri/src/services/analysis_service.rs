@@ -1,3 +1,4 @@
+use crate::db::DbPool;
 use crate::error::AppError;
 use reqwest::Client;
 use std::path::Path;
@@ -5,7 +6,7 @@ use std::path::Path;
 use crate::inference::{dispatch_analysis, get_provider, AnalysisResult};
 
 pub async fn analyze_file_service(
-    pool: &deadpool_sqlite::Pool,
+    pool: &DbPool,
     client: Client,
     url: String,
     file_path: String,
@@ -38,30 +39,23 @@ pub async fn analyze_file_service(
     let provider = get_provider(client, url);
     let results = dispatch_analysis(provider, functions, 5).await?;
 
-    let mut vuln_count = 0;
-    let mut saved_results = Vec::new();
+    crate::db::analysis_repo::save_functions_bulk(pool, file_id, &results).await?;
 
-    for result in results {
-        crate::db::analysis_repo::save_function(pool, file_id, result.clone()).await?;
-        if result.verdict == "vulnerable" {
-            vuln_count += 1;
-        }
-        saved_results.push(result);
-    }
+    let vuln_count = results.iter().filter(|r| r.verdict == "vulnerable").count() as i32;
 
     Ok(AnalysisResult {
         analysis_id: analysis_id as i32,
         project_name,
         path: file_path,
         files_scanned: 1,
-        total_functions: saved_results.len() as i32,
+        total_functions: results.len() as i32,
         vuln_count,
-        functions: saved_results,
+        functions: results,
     })
 }
 
 pub async fn analyze_folder_service(
-    pool: &deadpool_sqlite::Pool,
+    pool: &DbPool,
     client: Client,
     url: String,
     folder_path: String,
@@ -128,12 +122,12 @@ pub async fn analyze_folder_service(
             crate::db::analysis_repo::save_file(pool, analysis_id, file_path.clone()).await?;
         if let Ok(functions) = crate::parser::extract_functions(file_path) {
             let results = dispatch_analysis(provider.clone(), functions, 5).await?;
-            for result in results {
-                crate::db::analysis_repo::save_function(pool, file_id, result.clone()).await?;
+            crate::db::analysis_repo::save_functions_bulk(pool, file_id, &results).await?;
+            for result in &results {
                 if result.verdict == "vulnerable" {
                     total_vuln += 1;
                 }
-                all_functions.push(result);
+                all_functions.push(result.clone());
             }
         }
     }

@@ -7,9 +7,9 @@ hljs.registerLanguage("cpp", cpp);
 
 export const CIRCUMFERENCE = 2 * Math.PI * 20;
 
-export async function fetchReport(id: string): Promise<any> {
+export async function fetchAnalysisSummary(id: string): Promise<any> {
     try {
-        return await invoke<any>("get_report", { analysisId: parseInt(id) });
+        return await invoke<any>("get_analysis_summary", { analysisId: parseInt(id) });
     } catch (err) {
         throw new Error(err as string);
     }

@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
+default-run = "c-cure-demo"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -27,7 +28,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # Database
-rusqlite = { version = "0.32", features = ["bundled"] }
+duckdb = { version = "1", features = ["bundled"] }
+async-duckdb = "0.3"
 
 # AST Parsing
 tree-sitter = "0.22"
@@ -48,7 +50,6 @@ chrono = "0.4"
 thiserror = "1"
 dirs = "5"
 anyhow = "1.0.102"
-deadpool-sqlite = "0.9"
 
 [profile.dev]
 debug = false

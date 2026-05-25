@@ -2,10 +2,10 @@ use genpdf::{elements, fonts, Alignment, Document, SimplePageDecorator};
 use std::env;
 use std::path::Path;
 
-use crate::db::Report;
+use crate::db::VulnerabilityReport;
 use crate::error::AppError;
 
-pub fn generate_pdf(report: &Report) -> Result<String, AppError> {
+pub fn generate_pdf(report: &VulnerabilityReport) -> Result<String, AppError> {
     let font_family = if cfg!(windows) {
         let temp_font_dir = env::temp_dir().join("c-cure-fonts");
         let _ = std::fs::create_dir_all(&temp_font_dir);
@@ -58,27 +58,56 @@ pub fn generate_pdf(report: &Report) -> Result<String, AppError> {
     )));
     doc.push(elements::Break::new(1));
 
-    // Summary
-    let total_fns: usize = report.files.iter().map(|f| f.functions.len()).sum();
-    let total_vuln: usize = report
-        .files
-        .iter()
-        .flat_map(|f| &f.functions)
-        .filter(|fn_data| fn_data.verdict == "vulnerable")
-        .count();
-
     doc.push(elements::Paragraph::new("Summary"));
     doc.push(elements::Paragraph::new(format!(
         "Total Functions Scanned: {}",
-        total_fns
+        report.total_functions
     )));
     doc.push(elements::Paragraph::new(format!(
         "Vulnerable Functions: {}",
-        total_vuln
+        report.vulnerable_functions
+    )));
+    doc.push(elements::Paragraph::new(format!(
+        "Clean Functions: {}",
+        report.clean_functions
+    )));
+    doc.push(elements::Paragraph::new(format!(
+        "Files Scanned: {}",
+        report.total_files
     )));
     doc.push(elements::Break::new(2));
 
-    // Files
+    if !report.severity_breakdown.is_empty() {
+        doc.push(elements::Paragraph::new("Severity Breakdown"));
+        for severity in ["Critical", "High", "Medium", "Low"] {
+            let count = report
+                .severity_breakdown
+                .get(severity)
+                .copied()
+                .unwrap_or(0);
+            doc.push(elements::Paragraph::new(format!("{severity}: {count}")));
+        }
+        doc.push(elements::Break::new(1));
+    }
+
+    if !report.top_vulnerabilities.is_empty() {
+        doc.push(elements::Paragraph::new("Top Vulnerability Types"));
+        for hit in &report.top_vulnerabilities {
+            let name = hit.cwe_name.as_deref().unwrap_or("Unknown");
+            let severity = hit.severity.as_deref().unwrap_or("Unknown");
+            doc.push(elements::Paragraph::new(format!(
+                "{} - {} | Severity: {} | Hits: {}",
+                hit.cwe, name, severity, hit.count
+            )));
+        }
+        doc.push(elements::Break::new(2));
+    }
+
+    doc.push(elements::Paragraph::new(
+        "Detailed Vulnerable Findings (safe functions omitted)",
+    ));
+    doc.push(elements::Break::new(1));
+
     for file_data in &report.files {
         doc.push(elements::Paragraph::new(&file_data.file_path));
 
@@ -96,14 +125,13 @@ pub fn generate_pdf(report: &Report) -> Result<String, AppError> {
 
             doc.push(elements::Paragraph::new(heading));
 
-            if func.verdict == "vulnerable" {
-                let cwe = func.cwe.as_deref().unwrap_or("Unknown");
-                let sev = func.severity.as_deref().unwrap_or("Unknown");
-                doc.push(elements::Paragraph::new(format!(
-                    "CWE: {} | Severity: {}",
-                    cwe, sev
-                )));
-            }
+            let cwe = func.cwe.as_deref().unwrap_or("Unknown");
+            let cwe_name = func.cwe_name.as_deref().unwrap_or("Unknown");
+            let sev = func.severity.as_deref().unwrap_or("Unknown");
+            doc.push(elements::Paragraph::new(format!(
+                "CWE: {} ({}) | Severity: {}",
+                cwe, cwe_name, sev
+            )));
             doc.push(elements::Break::new(0.5));
         }
         doc.push(elements::Break::new(1));
@@ -121,19 +149,23 @@ pub fn generate_pdf(report: &Report) -> Result<String, AppError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{FileData, Report};
+    use crate::db::VulnerabilityReport;
+    use std::collections::HashMap;
 
     #[test]
     fn test_generate_pdf_file_creation() {
-        let report = Report {
+        let report = VulnerabilityReport {
             id: 99,
             project_name: "TestPDF".into(),
             project_path: None,
             timestamp: "2024-01-01 10:00:00".into(),
-            files: vec![FileData {
-                file_path: "test.cpp".into(),
-                functions: vec![],
-            }],
+            total_files: 1,
+            total_functions: 10,
+            vulnerable_functions: 0,
+            clean_functions: 10,
+            severity_breakdown: HashMap::new(),
+            top_vulnerabilities: vec![],
+            files: vec![],
         };
 
         // This will attempt to load fonts from Windows system or fallback.

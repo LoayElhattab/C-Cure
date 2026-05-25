@@ -2,63 +2,32 @@
   import { page } from "$app/stores";
   import { onMount } from "svelte";
   import { Download, ArrowRight, History } from "lucide-svelte";
-  import { fetchReport, flattenFunctions, exportPDF } from "./logic";
-  import {
-    getSeverityBorderColor,
-    getSeverityGlow,
-    getCVSSColor,
-  } from "$lib/cwe_db";
+  import { fetchAnalysisSummary, exportPDF } from "./logic";
+  let report = $state<any>(null);
+  let error = $state("");
+  let loading = $state(true);
+  let mounted = $state(false);
 
-  let report: any = null;
-  let error = "";
-  let loading = true;
-  let allFunctions: any[] = [];
-  let mounted = false;
+  let totalFunctions = $derived(report?.total_functions ?? 0);
+  let vulnerableFunctions = $derived(report?.vulnerable_functions ?? 0);
+  let cleanFunctions = $derived(report?.clean_functions ?? 0);
+  let totalFiles = $derived(report?.total_files ?? 0);
+  let vulnPct = $derived(
+    totalFunctions > 0
+      ? Math.round((vulnerableFunctions / totalFunctions) * 100)
+      : 0,
+  );
+  let isFolder = $derived(totalFiles > 1);
 
-  $: vulnFns = allFunctions.filter((f) => f.verdict === "vulnerable");
-  $: safeFns = allFunctions.filter((f) => f.verdict !== "vulnerable");
-  $: vulnPct =
-    allFunctions.length > 0
-      ? Math.round((vulnFns.length / allFunctions.length) * 100)
-      : 0;
-  $: isFolder = (report?.files?.length ?? 0) > 1;
-  $: filesAffectedCount = [...new Set(vulnFns.map((f) => f.file_path))].length;
+  let severityCounts = $derived({
+    Critical: report?.severity_breakdown?.Critical ?? 0,
+    High: report?.severity_breakdown?.High ?? 0,
+    Medium: report?.severity_breakdown?.Medium ?? 0,
+    Low: report?.severity_breakdown?.Low ?? 0,
+  });
+  let maxSevCount = $derived(Math.max(...Object.values(severityCounts), 1));
+  let cweFrequency = $derived(report?.top_vulnerabilities ?? []);
 
-  $: severityCounts = {
-    Critical: vulnFns.filter((f) => f.severity === "Critical").length,
-    High: vulnFns.filter((f) => f.severity === "High").length,
-    Medium: vulnFns.filter((f) => f.severity === "Medium").length,
-    Low: vulnFns.filter((f) => f.severity === "Low").length,
-  };
-  $: maxSevCount = Math.max(...Object.values(severityCounts), 1);
-
-  $: cweFrequency = (() => {
-    const counts: Record<
-      string,
-      { cwe: string; cwe_name: string; severity: string; count: number }
-    > = {};
-    vulnFns.forEach((f) => {
-      if (!f.cwe) return;
-      if (!counts[f.cwe])
-        counts[f.cwe] = {
-          cwe: f.cwe,
-          cwe_name: f.cwe_name ?? "",
-          severity: f.severity ?? "",
-          count: 0,
-        };
-      counts[f.cwe].count++;
-    });
-    return Object.values(counts)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 3);
-  })();
-
-  const severityOrder: Record<string, number> = {
-    Critical: 0,
-    High: 1,
-    Medium: 2,
-    Low: 3,
-  };
   const SEVERITY_COLORS: Record<string, string> = {
     Critical: "#ef4444",
     High: "#f97316",
@@ -66,30 +35,25 @@
     Low: "#3b82f6",
   };
 
-  $: topFindings = [...vulnFns]
-    .sort(
-      (a, b) =>
-        (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4),
-    )
-    .slice(0, 6);
+  let topFindings = $derived(report?.most_critical_findings ?? []);
 
   const RING_R = 56;
   const RING_C = 2 * Math.PI * RING_R;
-  $: ringColor =
+  let ringColor = $derived(
     vulnPct === 0
       ? "var(--success)"
       : vulnPct < 25
         ? "#eab308"
         : vulnPct < 60
           ? "#f97316"
-          : "var(--danger)";
-  $: ringOffset = mounted ? RING_C * (1 - vulnPct / 100) : RING_C;
+          : "var(--danger)",
+  );
+  let ringOffset = $derived(mounted ? RING_C * (1 - vulnPct / 100) : RING_C);
 
   onMount(async () => {
     try {
-      const data = await fetchReport($page.params.id ?? "0");
+      const data = await fetchAnalysisSummary($page.params.id ?? "0");
       report = data;
-      allFunctions = flattenFunctions(data);
     } catch (e: any) {
       error = e.message;
     }
@@ -318,7 +282,7 @@
         </div>
 
         <div class="flex-1 grid grid-cols-4 gap-3">
-          {#each [{ label: "Functions Scanned", value: allFunctions.length, color: "var(--text)" }, { label: "Vulnerable", value: vulnFns.length, color: "var(--danger)" }, { label: "Clean", value: safeFns.length, color: "var(--success)" }, { label: isFolder ? "Files Affected" : "Vulnerability Rate", value: isFolder ? `${filesAffectedCount} / ${report.files.length}` : `${vulnPct}%`, color: vulnPct > 50 ? "var(--danger)" : vulnPct > 0 ? "#f97316" : "var(--success)" }] as kpi, i}
+          {#each [{ label: "Functions Scanned", value: totalFunctions, color: "var(--text)" }, { label: "Vulnerable", value: vulnerableFunctions, color: "var(--danger)" }, { label: "Clean", value: cleanFunctions, color: "var(--success)" }, { label: isFolder ? "Files Scanned" : "Vulnerability Rate", value: isFolder ? totalFiles : `${vulnPct}%`, color: vulnPct > 50 ? "var(--danger)" : vulnPct > 0 ? "#f97316" : "var(--success)" }] as kpi, i}
             <div class="card p-4 animate-fade-up stagger-{i + 1}">
               <p
                 class="text-xs uppercase tracking-wider mb-1.5"
@@ -346,7 +310,7 @@
           >
             Severity Breakdown
           </p>
-          {#if vulnFns.length === 0}
+          {#if vulnerableFunctions === 0}
             <div
               class="flex items-center gap-2 py-6"
               style="color:var(--success)"

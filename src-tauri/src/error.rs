@@ -3,11 +3,9 @@ use serde::Serialize;
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error("Database error: {0}")]
-    Database(#[from] rusqlite::Error),
-    #[error("Database pool error: {0}")]
-    Pool(#[from] deadpool_sqlite::PoolError),
-    #[error("Database interaction error: {0}")]
-    Interact(#[from] deadpool_sqlite::InteractError),
+    Database(#[from] duckdb::Error),
+    #[error("Database client error: {0}")]
+    AsyncDb(#[from] async_duckdb::Error),
     #[error("Network error: {0}")]
     Network(#[from] reqwest::Error),
     #[error("IO error: {0}")]

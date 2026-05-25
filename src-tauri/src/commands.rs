@@ -1,6 +1,8 @@
 use serde_json::Value;
 
-use crate::db::{AnalysisSummary, Report, StatisticsData, WatchedProject};
+use crate::db::{
+    AnalysisListItem, AnalysisSummary, PagedFunctions, Report, StatisticsData, WatchedProject,
+};
 use crate::error::AppError;
 use crate::inference::AnalysisResult;
 use crate::AppState;
@@ -44,8 +46,18 @@ pub async fn analyze_folder(
 #[tauri::command]
 pub async fn get_history(
     state: tauri::State<'_, AppState>,
-) -> Result<Vec<AnalysisSummary>, AppError> {
+) -> Result<Vec<AnalysisListItem>, AppError> {
     crate::db::analysis_repo::get_all_analyses(&state.pool).await
+}
+
+#[tauri::command]
+pub async fn get_analysis_summary(
+    state: tauri::State<'_, AppState>,
+    analysis_id: i32,
+) -> Result<AnalysisSummary, AppError> {
+    crate::db::analysis_repo::get_analysis_summary(&state.pool, analysis_id)
+        .await?
+        .ok_or_else(|| AppError::Custom("Analysis summary not found".into()))
 }
 
 #[tauri::command]
@@ -64,6 +76,29 @@ pub async fn delete_analysis(
     analysis_id: i32,
 ) -> Result<(), AppError> {
     crate::db::analysis_repo::delete_analysis(&state.pool, analysis_id).await
+}
+
+/// Returns the total number of functions for an analysis.
+/// Call this once when opening a report to know how many pages exist.
+#[tauri::command]
+pub async fn get_functions_count(
+    state: tauri::State<'_, AppState>,
+    analysis_id: i32,
+) -> Result<u64, AppError> {
+    crate::db::analysis_repo::get_functions_count(&state.pool, analysis_id).await
+}
+
+/// Returns a paginated, flat list of functions for an analysis.
+/// `limit`  – rows per page (default: 50 from the frontend).
+/// `offset` – zero-based row offset ((page - 1) * limit).
+#[tauri::command]
+pub async fn get_functions_page(
+    state: tauri::State<'_, AppState>,
+    analysis_id: i32,
+    limit: u32,
+    offset: u32,
+) -> Result<PagedFunctions, AppError> {
+    crate::db::analysis_repo::get_functions_page(&state.pool, analysis_id, limit, offset).await
 }
 
 #[tauri::command]
@@ -117,9 +152,10 @@ pub async fn generate_pdf(
     state: tauri::State<'_, AppState>,
     analysis_id: u32,
 ) -> Result<Value, AppError> {
-    let report = crate::db::analysis_repo::get_report(&state.pool, analysis_id as i32)
-        .await?
-        .ok_or_else(|| AppError::Custom("Report not found".into()))?;
+    let report =
+        crate::db::analysis_repo::get_vulnerability_report(&state.pool, analysis_id as i32)
+            .await?
+            .ok_or_else(|| AppError::Custom("Report not found".into()))?;
     let path = crate::report::generate_pdf(&report)
         .map_err(|e| AppError::Custom(format!("PDF generation failed: {}", e)))?;
     Ok(serde_json::json!({ "path": path }))
