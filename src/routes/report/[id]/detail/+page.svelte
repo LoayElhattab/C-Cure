@@ -16,10 +16,10 @@
         ArrowLeft,
         Download,
     } from "lucide-svelte";
+    import ExportReportModal from "$lib/components/ExportReportModal.svelte";
     import {
         highlightCode,
         copyToClipboard,
-        exportPDF,
     } from "../logic";
     import {
         getCWEData,
@@ -57,6 +57,7 @@
     let error = $state("");
     let loading = $state(true);
     let isLoading = $state(false);
+    let exportModalOpen = $state(false);
 
     // Pagination
     let currentPage = $state(1);
@@ -355,10 +356,11 @@
             {/if}
 
             <button
-                onclick={() => exportPDF($page.params.id ?? "0")}
-                class="btn-ghost shrink-0"
+                type="button"
+                onclick={() => (exportModalOpen = true)}
+                class="btn-primary shrink-0"
             >
-                <Download size={12} />PDF
+                <Download size={12} />Export Report
             </button>
 
             <span
@@ -1150,5 +1152,11 @@
                 {/if}
             </div>
         </div>
+
+        <ExportReportModal
+            analysisId={$page.params.id ?? "0"}
+            open={exportModalOpen}
+            onClose={() => (exportModalOpen = false)}
+        />
     </div>
 {/if}

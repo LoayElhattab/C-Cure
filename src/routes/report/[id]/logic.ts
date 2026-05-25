@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { success, error as errorToast } from "$lib/toast";
 import hljs from "highlight.js/lib/core";
 import cpp from "highlight.js/lib/languages/cpp";
 
@@ -29,55 +28,4 @@ export function highlightCode(code: string): string {
 
 export async function copyToClipboard(code: string): Promise<void> {
     await navigator.clipboard.writeText(code);
-}
-
-export async function exportPDF(id: string, executiveSummaryOnly = false): Promise<void> {
-    try {
-        const result = await invoke<any>("generate_pdf", {
-            analysisId: parseInt(id),
-            settings: { executiveSummaryOnly },
-        });
-        await invoke("open_path", { path: result.path });
-        success(`${executiveSummaryOnly ? "Executive" : "Technical"} PDF exported successfully`);
-    } catch (err) { errorToast("Failed to export PDF: " + err); }
-}
-
-export async function exportSARIF(id: string): Promise<void> {
-    try {
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const filePath = await save({
-            defaultPath: `c-cure-analysis-${id}.sarif`,
-            filters: [{ name: "SARIF", extensions: ["sarif"] }],
-        });
-
-        if (!filePath) return;
-
-        await invoke("export_sarif", {
-            analysisId: parseInt(id),
-            filePath,
-        });
-        success("SARIF exported successfully");
-    } catch (err) {
-        errorToast("Failed to export SARIF: " + err);
-    }
-}
-
-export async function exportCSV(id: string): Promise<void> {
-    try {
-        const { save } = await import("@tauri-apps/plugin-dialog");
-        const filePath = await save({
-            defaultPath: `c-cure-analysis-${id}.csv`,
-            filters: [{ name: "CSV", extensions: ["csv"] }],
-        });
-
-        if (!filePath) return;
-
-        await invoke("export_csv", {
-            analysisId: parseInt(id),
-            filePath,
-        });
-        success("CSV exported successfully");
-    } catch (err) {
-        errorToast("Failed to export CSV: " + err);
-    }
 }

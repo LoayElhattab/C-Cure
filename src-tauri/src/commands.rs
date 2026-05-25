@@ -7,6 +7,7 @@ use crate::error::AppError;
 use crate::inference::AnalysisResult;
 use crate::report::ExportSettings;
 use crate::AppState;
+use std::path::PathBuf;
 
 #[tauri::command]
 pub async fn analyze_file(
@@ -166,6 +167,52 @@ pub async fn generate_pdf(
     .map_err(|e| AppError::Custom(format!("PDF export worker failed: {e}")))?
     .map_err(|e| AppError::Custom(format!("PDF generation failed: {}", e)))?;
     Ok(serde_json::json!({ "path": path }))
+}
+
+#[tauri::command]
+pub async fn export_report(
+    state: tauri::State<'_, AppState>,
+    analysis_id: i64,
+    format: String,
+    file_path: String,
+) -> Result<Value, AppError> {
+    match format.as_str() {
+        "pdf_technical" | "pdf_executive" => {
+            let report = crate::db::analysis_repo::get_vulnerability_report(
+                &state.pool,
+                analysis_id as i32,
+            )
+            .await?
+            .ok_or_else(|| AppError::Custom("Report not found".into()))?;
+
+            let executive_summary_only = format == "pdf_executive";
+            let destination = PathBuf::from(&file_path);
+            tauri::async_runtime::spawn_blocking(move || {
+                let generated_path = crate::report::generate_pdf(
+                    &report,
+                    ExportSettings {
+                        executive_summary_only,
+                    },
+                )?;
+                std::fs::copy(&generated_path, &destination).map_err(|e| {
+                    AppError::Custom(format!("Failed to save PDF export: {e}"))
+                })?;
+                Ok::<(), AppError>(())
+            })
+            .await
+            .map_err(|e| AppError::Custom(format!("PDF export worker failed: {e}")))??;
+        }
+        "sarif" => {
+            crate::sarif_export::export_sarif(&state.pool, analysis_id, file_path.clone()).await?;
+        }
+        "csv" => {
+            crate::csv_export::export_csv(&state.pool, analysis_id as i32, file_path.clone())
+                .await?;
+        }
+        _ => return Err(AppError::Custom(format!("Unsupported export format: {format}"))),
+    }
+
+    Ok(serde_json::json!({ "path": file_path, "format": format }))
 }
 
 #[tauri::command]

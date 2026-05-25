@@ -12,7 +12,7 @@
 	}: {
 		class?: string;
 		children?: import("svelte").Snippet;
-		title?: string | import("svelte").Snippet;
+		title?: string;
 		description?: string;
 		footer?: import("svelte").Snippet;
 	} & HTMLAttributes<HTMLDivElement> = $props();
@@ -27,12 +27,10 @@
 >
 	{#if title || description}
 		<div class="p-6 border-b border-zinc-800/50">
-			{#if typeof title === "string"}
+			{#if title}
 				<h3 class="text-lg font-semibold leading-none tracking-tight text-zinc-100">
 					{title}
 				</h3>
-			{:else if title}
-				{@render title()}
 			{/if}
 			{#if description}
 				<p class="text-sm text-zinc-400 mt-1.5">

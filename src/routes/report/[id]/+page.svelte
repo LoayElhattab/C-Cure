@@ -1,12 +1,14 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import { onMount } from "svelte";
-  import { Download, ArrowRight, History, FileJson, FileText, Table } from "lucide-svelte";
-  import { fetchAnalysisSummary, exportPDF, exportSARIF, exportCSV } from "./logic";
+  import { Download, ArrowRight, History } from "lucide-svelte";
+  import ExportReportModal from "$lib/components/ExportReportModal.svelte";
+  import { fetchAnalysisSummary } from "./logic";
   let report = $state<any>(null);
   let error = $state("");
   let loading = $state(true);
   let mounted = $state(false);
+  let exportModalOpen = $state(false);
 
   let totalFunctions = $derived(report?.total_functions ?? 0);
   let vulnerableFunctions = $derived(report?.vulnerable_functions ?? 0);
@@ -214,28 +216,11 @@
       </div>
       <div class="flex items-center gap-2 shrink-0">
         <button
-          onclick={() => exportPDF($page.params.id ?? "0")}
-          class="btn-ghost"
+          type="button"
+          onclick={() => (exportModalOpen = true)}
+          class="btn-primary"
         >
-          <Download size={12} />Technical PDF
-        </button>
-        <button
-          onclick={() => exportPDF($page.params.id ?? "0", true)}
-          class="btn-ghost"
-        >
-          <FileText size={12} />Executive PDF
-        </button>
-        <button
-          onclick={() => exportSARIF($page.params.id ?? "0")}
-          class="btn-ghost"
-        >
-          <FileJson size={12} />Export SARIF
-        </button>
-        <button
-          onclick={() => exportCSV($page.params.id ?? "0")}
-          class="btn-ghost"
-        >
-          <Table size={12} />Export CSV
+          <Download size={12} />Export Report
         </button>
         <a href="/report/{$page.params.id}/detail" class="btn-primary">
           Full Report <ArrowRight size={12} />
@@ -494,6 +479,12 @@
         </a>
       </div>
     </div>
+
+    <ExportReportModal
+      analysisId={$page.params.id ?? "0"}
+      open={exportModalOpen}
+      onClose={() => (exportModalOpen = false)}
+    />
   </div>
 {/if}
 

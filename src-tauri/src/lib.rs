@@ -71,6 +71,7 @@ pub fn run() {
             commands::delete_analysis,
             commands::get_settings,
             commands::save_settings,
+            commands::export_report,
             commands::generate_pdf,
             commands::export_sarif,
             commands::export_csv,
