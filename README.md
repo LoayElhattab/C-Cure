@@ -104,16 +104,16 @@ Enjoy a modern, responsive interface built with Svelte 5 and Tailwind CSS. The a
 
 ## Vulnerability Coverage
 
-C-Cure maps code vulnerabilities to standard **Common Weakness Enumerations (CWE)**:
+C-Cure maps code vulnerabilities to standard **Common Weakness Enumerations (CWE)** and enriches vulnerable findings with safety-critical taxonomy identifiers:
 
-| ID | Description | Default Severity |
-|----|-------------|------------------|
-| **CWE-125** | Out-of-bounds Read | High |
-| **CWE-787** | Out-of-bounds Write | Critical |
-| **CWE-190** | Integer Overflow or Wraparound | High |
-| **CWE-369** | Divide By Zero | Medium |
-| **CWE-415** | Double Free | High |
-| **CWE-476** | NULL Pointer Dereference | High |
+| ID | Description | Default Severity | OWASP ASVS V4 | SEI CERT C/C++ | MISRA C++ |
+|----|-------------|------------------|---------------|----------------|-----------|
+| **CWE-125** | Out-of-bounds Read | High | ASVS 4.0.3 V5.4.1 | ARR30-C | MISRA C++:2008 Rule 5-0-16 |
+| **CWE-787** | Out-of-bounds Write | Critical | ASVS 4.0.3 V5.4.1 | ARR30-C | MISRA C++:2008 Rule 5-0-15 |
+| **CWE-190** | Integer Overflow or Wraparound | High | ASVS 4.0.3 V5.4.3 | INT32-C | MISRA C++:2008 Rule 5-0-6 |
+| **CWE-369** | Divide By Zero | Medium | ASVS 4.0.3 V5.1.4 | INT33-C | MISRA C++:2008 Rule 5-0-10 |
+| **CWE-415** | Double Free | High | ASVS 4.0.3 V5.4.1 | MEM30-C | MISRA C++:2008 Rule 18-4-1 |
+| **CWE-476** | NULL Pointer Dereference | High | ASVS 4.0.3 V5.4.1 | EXP34-C | MISRA C++:2008 Rule 4-10-1 |
 
 ---
 

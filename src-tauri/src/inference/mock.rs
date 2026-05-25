@@ -27,11 +27,15 @@ impl InferenceProvider for MockProvider {
                     verdict: "vulnerable".into(),
                     cwe: Some("CWE-787".into()),
                     cwe_name,
+                    cert_id: None,
+                    asvs_id: None,
+                    misra_id: None,
                     severity,
                     confidence: Some(0.85),
                     start_line: None,
                     end_line: None,
-                });
+                }
+                .with_compliance());
             } else {
                 return Ok(FunctionData {
                     id: None,
@@ -40,6 +44,9 @@ impl InferenceProvider for MockProvider {
                     verdict: "safe".into(),
                     cwe: None,
                     cwe_name: None,
+                    cert_id: None,
+                    asvs_id: None,
+                    misra_id: None,
                     severity: None,
                     confidence: Some(0.95),
                     start_line: None,

@@ -106,6 +106,9 @@ impl InferenceProvider for KaggleProvider {
                     verdict: "safe".into(),
                     cwe: None,
                     cwe_name: None,
+                    cert_id: None,
+                    asvs_id: None,
+                    misra_id: None,
                     severity: None,
                     confidence: Some(confidence),
                     start_line: None,
@@ -126,11 +129,15 @@ impl InferenceProvider for KaggleProvider {
                 },
                 cwe: Some(output_str),
                 cwe_name: cwe_info.0,
+                cert_id: None,
+                asvs_id: None,
+                misra_id: None,
                 severity: cwe_info.1,
                 confidence: Some(confidence),
                 start_line: None,
                 end_line: None,
-            })
+            }
+            .with_compliance())
         })
     }
 }

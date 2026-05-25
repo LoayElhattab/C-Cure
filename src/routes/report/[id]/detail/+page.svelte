@@ -36,6 +36,9 @@
         verdict: string;
         cwe: string | null;
         cwe_name: string | null;
+        cert_id: string | null;
+        asvs_id: string | null;
+        misra_id: string | null;
         severity: string | null;
         confidence: number | null;
         start_line: number | null;
@@ -182,6 +185,16 @@
         await copyToClipboard(fn.code ?? "");
         copiedId = fn.id;
         setTimeout(() => (copiedId = null), 2000);
+    }
+
+    function complianceBadges(fn: FunctionRow) {
+        return [
+            { label: "ASVS", value: fn.asvs_id },
+            { label: "CERT", value: fn.cert_id },
+            { label: "MISRA", value: fn.misra_id },
+        ].filter((item): item is { label: string; value: string } =>
+            Boolean(item.value),
+        );
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
@@ -458,6 +471,14 @@
                                                     style="background:{color}20;color:{color};font-size:10px"
                                                     >{fn.severity}</span
                                                 >
+                                                {#each complianceBadges(fn) as standard}
+                                                    <span
+                                                        class="px-1.5 py-0.5 rounded font-semibold"
+                                                        title="{standard.label}: {standard.value}"
+                                                        style="background:var(--surface-2);border:1px solid var(--border);color:var(--muted);font-size:10px"
+                                                        >{standard.value}</span
+                                                    >
+                                                {/each}
                                             {:else}
                                                 <span
                                                     class="px-1.5 py-0.5 rounded font-semibold"
@@ -602,13 +623,21 @@
                                                                             style="color:{sevCol}"
                                                                             >{cweCode}</span
                                                                         >
+                                                                    <span
+                                                                        class="px-1.5 py-0.5 rounded font-semibold"
+                                                                        style="background:{sevCol}22;color:{sevCol};font-size:10px"
+                                                                    >
+                                                                        {data.cvss_severity}
+                                                                    </span>
+                                                                    {#each complianceBadges(fn) as standard}
                                                                         <span
                                                                             class="px-1.5 py-0.5 rounded font-semibold"
-                                                                            style="background:{sevCol}22;color:{sevCol};font-size:10px"
+                                                                            title="{standard.label}: {standard.value}"
+                                                                            style="background:var(--surface-2);border:1px solid var(--border);color:var(--muted);font-size:10px"
+                                                                            >{standard.value}</span
                                                                         >
-                                                                            {data.cvss_severity}
-                                                                        </span>
-                                                                    </div>
+                                                                    {/each}
+                                                                </div>
                                                                     <p
                                                                         class="text-xs font-semibold"
                                                                         style="color:var(--text)"
@@ -831,6 +860,14 @@
                                                                     style="background:{color}20;color:{color};font-size:10px"
                                                                     >{fn.severity}</span
                                                                 >
+                                                                {#each complianceBadges(fn) as standard}
+                                                                    <span
+                                                                        class="px-1.5 py-0.5 rounded font-semibold"
+                                                                        title="{standard.label}: {standard.value}"
+                                                                        style="background:var(--surface-2);border:1px solid var(--border);color:var(--muted);font-size:10px"
+                                                                        >{standard.value}</span
+                                                                    >
+                                                                {/each}
                                                             {:else}
                                                                 <span
                                                                     class="px-1.5 py-0.5 rounded font-semibold"
@@ -971,6 +1008,14 @@
                                                                                         style="background:{sevCol}22;color:{sevCol};font-size:10px"
                                                                                         >{fn.severity}</span
                                                                                     >
+                                                                                    {#each complianceBadges(fn) as standard}
+                                                                                        <span
+                                                                                            class="px-1.5 py-0.5 rounded font-semibold"
+                                                                                            title="{standard.label}: {standard.value}"
+                                                                                            style="background:var(--surface-2);border:1px solid var(--border);color:var(--muted);font-size:10px"
+                                                                                            >{standard.value}</span
+                                                                                        >
+                                                                                    {/each}
                                                                                 </div>
                                                                                 <p
                                                                                     class="text-xs font-semibold"

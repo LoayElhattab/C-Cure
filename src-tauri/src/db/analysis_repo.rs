@@ -158,9 +158,13 @@ pub async fn get_analysis_summary(
             Ok(CweHit {
                 cwe: row.get(0)?,
                 cwe_name: row.get(1)?,
+                cert_id: None,
+                asvs_id: None,
+                misra_id: None,
                 severity: row.get(2)?,
                 count: row.get::<_, i64>(3)? as u32,
-            })
+            }
+            .with_compliance())
         })?;
 
         let mut top_vulnerabilities = Vec::new();
@@ -205,12 +209,16 @@ pub async fn get_analysis_summary(
                 verdict: row.get(3)?,
                 cwe: row.get(4)?,
                 cwe_name: row.get(5)?,
+                cert_id: None,
+                asvs_id: None,
+                misra_id: None,
                 severity: row.get(6)?,
                 confidence: row.get(7)?,
                 start_line: row.get(8)?,
                 end_line: row.get(9)?,
                 file_path: row.get(10)?,
-            })
+            }
+            .with_compliance())
         })?;
 
         let mut most_critical_findings = Vec::new();
@@ -278,11 +286,15 @@ pub async fn get_report(pool: &DbPool, analysis_id: i32) -> Result<Option<Report
                     verdict: row.get(3)?,
                     cwe: row.get(4)?,
                     cwe_name: row.get(5)?,
+                    cert_id: None,
+                    asvs_id: None,
+                    misra_id: None,
                     severity: row.get(6)?,
                     confidence: row.get(7)?,
                     start_line: row.get(8)?,
                     end_line: row.get(9)?,
-                })
+                }
+                .with_compliance())
             })?;
 
             let mut functions = Vec::new();
@@ -390,9 +402,13 @@ pub async fn get_vulnerability_report(
             Ok(CweHit {
                 cwe: row.get(0)?,
                 cwe_name: row.get(1)?,
+                cert_id: None,
+                asvs_id: None,
+                misra_id: None,
                 severity: row.get(2)?,
                 count: row.get::<_, i64>(3)? as u32,
-            })
+            }
+            .with_compliance())
         })?;
         let mut top_vulnerabilities = Vec::new();
         for row in cwe_rows {
@@ -437,11 +453,15 @@ pub async fn get_vulnerability_report(
                     verdict: row.get(4)?,
                     cwe: row.get(5)?,
                     cwe_name: row.get(6)?,
+                    cert_id: None,
+                    asvs_id: None,
+                    misra_id: None,
                     severity: row.get(7)?,
                     confidence: row.get(8)?,
                     start_line: row.get(9)?,
                     end_line: row.get(10)?,
-                },
+                }
+                .with_compliance(),
             ))
         })?;
 
@@ -612,12 +632,16 @@ pub async fn get_functions_page(
                 verdict: row.get(3)?,
                 cwe: row.get(4)?,
                 cwe_name: row.get(5)?,
+                cert_id: None,
+                asvs_id: None,
+                misra_id: None,
                 severity: row.get(6)?,
                 confidence: row.get(7)?,
                 start_line: row.get(8)?,
                 end_line: row.get(9)?,
                 file_path: row.get(10)?,
-            })
+            }
+            .with_compliance())
         })?;
 
         let mut functions = Vec::new();
