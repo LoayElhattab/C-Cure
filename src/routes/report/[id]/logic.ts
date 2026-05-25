@@ -31,11 +31,14 @@ export async function copyToClipboard(code: string): Promise<void> {
     await navigator.clipboard.writeText(code);
 }
 
-export async function exportPDF(id: string): Promise<void> {
+export async function exportPDF(id: string, executiveSummaryOnly = false): Promise<void> {
     try {
-        const result = await invoke<any>("generate_pdf", { analysisId: parseInt(id) });
+        const result = await invoke<any>("generate_pdf", {
+            analysisId: parseInt(id),
+            settings: { executiveSummaryOnly },
+        });
         await invoke("open_path", { path: result.path });
-        success("Report exported successfully");
+        success(`${executiveSummaryOnly ? "Executive" : "Technical"} PDF exported successfully`);
     } catch (err) { errorToast("Failed to export PDF: " + err); }
 }
 
@@ -56,5 +59,25 @@ export async function exportSARIF(id: string): Promise<void> {
         success("SARIF exported successfully");
     } catch (err) {
         errorToast("Failed to export SARIF: " + err);
+    }
+}
+
+export async function exportCSV(id: string): Promise<void> {
+    try {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const filePath = await save({
+            defaultPath: `c-cure-analysis-${id}.csv`,
+            filters: [{ name: "CSV", extensions: ["csv"] }],
+        });
+
+        if (!filePath) return;
+
+        await invoke("export_csv", {
+            analysisId: parseInt(id),
+            filePath,
+        });
+        success("CSV exported successfully");
+    } catch (err) {
+        errorToast("Failed to export CSV: " + err);
     }
 }

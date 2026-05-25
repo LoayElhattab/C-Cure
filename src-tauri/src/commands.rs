@@ -5,6 +5,7 @@ use crate::db::{
 };
 use crate::error::AppError;
 use crate::inference::AnalysisResult;
+use crate::report::ExportSettings;
 use crate::AppState;
 
 #[tauri::command]
@@ -151,13 +152,19 @@ pub fn save_settings(
 pub async fn generate_pdf(
     state: tauri::State<'_, AppState>,
     analysis_id: u32,
+    settings: Option<ExportSettings>,
 ) -> Result<Value, AppError> {
     let report =
         crate::db::analysis_repo::get_vulnerability_report(&state.pool, analysis_id as i32)
             .await?
             .ok_or_else(|| AppError::Custom("Report not found".into()))?;
-    let path = crate::report::generate_pdf(&report)
-        .map_err(|e| AppError::Custom(format!("PDF generation failed: {}", e)))?;
+    let settings = settings.unwrap_or_default();
+    let path = tauri::async_runtime::spawn_blocking(move || {
+        crate::report::generate_pdf(&report, settings)
+    })
+    .await
+    .map_err(|e| AppError::Custom(format!("PDF export worker failed: {e}")))?
+    .map_err(|e| AppError::Custom(format!("PDF generation failed: {}", e)))?;
     Ok(serde_json::json!({ "path": path }))
 }
 
@@ -168,6 +175,15 @@ pub async fn export_sarif(
     file_path: String,
 ) -> Result<(), AppError> {
     crate::sarif_export::export_sarif(&state.pool, analysis_id, file_path).await
+}
+
+#[tauri::command]
+pub async fn export_csv(
+    state: tauri::State<'_, AppState>,
+    analysis_id: i32,
+    file_path: String,
+) -> Result<(), AppError> {
+    crate::csv_export::export_csv(&state.pool, analysis_id, file_path).await
 }
 
 #[tauri::command]

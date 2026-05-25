@@ -42,8 +42,8 @@ Monitor your project's security posture in real-time. The built-in dashboard pro
 ### Continuous Folder Monitoring
 Register your project directories to track changes automatically. C-Cure uses MD5 baseline hashing to detect added, modified, and deleted C/C++ files, allowing you to re-analyze only what has changed, saving time and resources.
 
-### Professional PDF Reporting
-Export detailed vulnerability assessment reports with a single click. Every report includes project metadata, summary metrics, severity breakdowns, top vulnerability types, CWE identifications, affected functions, and line ranges, formatted for professional distribution.
+### Enterprise Export Reporting
+Export vulnerability assessment results in multiple enterprise-ready formats: Technical PDF for detailed engineering review, Executive PDF for KPI-focused stakeholder summaries, SARIF 2.1.0 for security tooling integration, and CSV for spreadsheet analysis or data pipelines. Reports include project metadata, summary metrics, severity breakdowns, top vulnerability types, CWE identifications, affected functions, and line ranges as appropriate for each format.
 
 ### Premium User Experience
 Enjoy a modern, responsive interface built with Svelte 5 and Tailwind CSS. The app features optimized navigation, Chart.js visualizations, syntax-highlighted code views, searchable and filterable reports, and a unified dark-mode aesthetic for comfortable development.
@@ -98,7 +98,7 @@ Enjoy a modern, responsive interface built with Svelte 5 and Tailwind CSS. The a
 3.  **Inference**: Extracted function snippets are dispatched asynchronously to the configured Kaggle/NGROK inference API with bounded concurrency. The provider classifies each block as **Safe** or **Vulnerable** and returns confidence data.
 4.  **Enrichment**: Vulnerable outputs are mapped to CWE names, default severities, CVSS-oriented frontend metadata, and remediation guidance.
 5.  **Persistence**: Analysis metadata, scanned files, function results, watched projects, and file hashes are stored locally in DuckDB. Legacy SQLite data is migrated automatically when detected.
-6.  **Reporting**: Summary screens load aggregate metrics, while detailed reports use optimized count and page endpoints. PDF export generates vulnerability-focused reports from the stored DuckDB results.
+6.  **Reporting**: Summary screens load aggregate metrics, while detailed reports use optimized count and page endpoints. The export backend reads stored DuckDB results and can generate Technical PDF, Executive PDF, SARIF 2.1.0, and RFC 4180-compliant CSV outputs on background workers.
 
 ---
 

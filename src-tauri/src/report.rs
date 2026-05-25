@@ -1,11 +1,29 @@
 use genpdf::{elements, fonts, Alignment, Document, SimplePageDecorator};
+use serde::Deserialize;
 use std::env;
 use std::path::Path;
 
 use crate::db::VulnerabilityReport;
 use crate::error::AppError;
 
-pub fn generate_pdf(report: &VulnerabilityReport) -> Result<String, AppError> {
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct ExportSettings {
+    pub executive_summary_only: bool,
+}
+
+impl Default for ExportSettings {
+    fn default() -> Self {
+        Self {
+            executive_summary_only: false,
+        }
+    }
+}
+
+pub fn generate_pdf(
+    report: &VulnerabilityReport,
+    settings: ExportSettings,
+) -> Result<String, AppError> {
     let font_family = if cfg!(windows) {
         let temp_font_dir = env::temp_dir().join("c-cure-fonts");
         let _ = std::fs::create_dir_all(&temp_font_dir);
@@ -37,14 +55,20 @@ pub fn generate_pdf(report: &VulnerabilityReport) -> Result<String, AppError> {
     };
 
     let mut doc = Document::new(font_family);
-    doc.set_title("C-Cure Vulnerability Report");
+    let report_title = if settings.executive_summary_only {
+        "C-Cure Executive Vulnerability Report"
+    } else {
+        "C-Cure Technical Vulnerability Report"
+    };
+
+    doc.set_title(report_title);
 
     let mut decorator = SimplePageDecorator::new();
     decorator.set_margins(10);
     doc.set_page_decorator(decorator);
 
     // Title
-    doc.push(elements::Paragraph::new("C-Cure Vulnerability Report").aligned(Alignment::Center));
+    doc.push(elements::Paragraph::new(report_title).aligned(Alignment::Center));
     doc.push(elements::Break::new(1));
 
     // Project Info
@@ -103,42 +127,67 @@ pub fn generate_pdf(report: &VulnerabilityReport) -> Result<String, AppError> {
         doc.push(elements::Break::new(2));
     }
 
-    doc.push(elements::Paragraph::new(
-        "Detailed Vulnerable Findings (safe functions omitted)",
-    ));
-    doc.push(elements::Break::new(1));
-
-    for file_data in &report.files {
-        doc.push(elements::Paragraph::new(&file_data.file_path));
-
-        for func in &file_data.functions {
-            let start = func.start_line.unwrap_or(0);
-            let end = func.end_line.unwrap_or(0);
-
-            let heading = format!(
-                "{} (Lines {}-{}) - {}",
-                func.function_name,
-                start,
-                end,
-                func.verdict.to_uppercase()
-            );
-
-            doc.push(elements::Paragraph::new(heading));
-
-            let cwe = func.cwe.as_deref().unwrap_or("Unknown");
-            let cwe_name = func.cwe_name.as_deref().unwrap_or("Unknown");
-            let sev = func.severity.as_deref().unwrap_or("Unknown");
+    if report.vulnerable_functions > 0 {
+        doc.push(elements::Paragraph::new("File Metrics"));
+        doc.push(elements::Paragraph::new(format!(
+            "Files With Vulnerable Findings: {}",
+            report.files.len()
+        )));
+        for file_data in report.files.iter().take(10) {
             doc.push(elements::Paragraph::new(format!(
-                "CWE: {} ({}) | Severity: {}",
-                cwe, cwe_name, sev
+                "{} | Findings: {}",
+                file_data.file_path,
+                file_data.functions.len()
             )));
-            doc.push(elements::Break::new(0.5));
         }
         doc.push(elements::Break::new(1));
     }
 
+    if !settings.executive_summary_only {
+        doc.push(elements::Paragraph::new(
+            "Detailed Vulnerable Findings (safe functions omitted)",
+        ));
+        doc.push(elements::Break::new(1));
+
+        for file_data in &report.files {
+            doc.push(elements::Paragraph::new(&file_data.file_path));
+
+            for func in &file_data.functions {
+                let start = func.start_line.unwrap_or(0);
+                let end = func.end_line.unwrap_or(0);
+
+                let heading = format!(
+                    "{} (Lines {}-{}) - {}",
+                    func.function_name,
+                    start,
+                    end,
+                    func.verdict.to_uppercase()
+                );
+
+                doc.push(elements::Paragraph::new(heading));
+
+                let cwe = func.cwe.as_deref().unwrap_or("Unknown");
+                let cwe_name = func.cwe_name.as_deref().unwrap_or("Unknown");
+                let sev = func.severity.as_deref().unwrap_or("Unknown");
+                doc.push(elements::Paragraph::new(format!(
+                    "CWE: {} ({}) | Severity: {}",
+                    cwe, cwe_name, sev
+                )));
+                doc.push(elements::Paragraph::new("Code Snippet:"));
+                doc.push(elements::Paragraph::new(func.code.clone()));
+                doc.push(elements::Break::new(0.5));
+            }
+            doc.push(elements::Break::new(1));
+        }
+    }
+
     let temp_dir = env::temp_dir();
-    let pdf_path = temp_dir.join(format!("c-cure-report-{}.pdf", report.id));
+    let tier = if settings.executive_summary_only {
+        "executive"
+    } else {
+        "technical"
+    };
+    let pdf_path = temp_dir.join(format!("c-cure-{tier}-report-{}.pdf", report.id));
 
     doc.render_to_file(&pdf_path)
         .map_err(|e| AppError::Custom(format!("Failed to save PDF: {}", e)))?;
@@ -171,7 +220,7 @@ mod tests {
         // This will attempt to load fonts from Windows system or fallback.
         // It might be flaky in CI but locally it should pass if fonts exist.
         // If it fails due to fonts, it will return an error, which is an expected path to test.
-        let res = generate_pdf(&report);
+        let res = generate_pdf(&report, ExportSettings::default());
 
         if let Ok(path) = res {
             assert!(Path::new(&path).exists());

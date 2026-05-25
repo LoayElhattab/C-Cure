@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod csv_export;
 pub mod db;
 pub mod error;
 pub mod inference;
@@ -72,6 +73,7 @@ pub fn run() {
             commands::save_settings,
             commands::generate_pdf,
             commands::export_sarif,
+            commands::export_csv,
             commands::open_path
         ])
         .run(tauri::generate_context!())

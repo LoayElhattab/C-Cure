@@ -99,11 +99,16 @@ pub async fn export_sarif(
         .await?
         .ok_or_else(|| AppError::Custom("Report not found".into()))?;
 
-    let sarif = build_sarif(&report);
-    let json = serde_json::to_string_pretty(&sarif)
-        .map_err(|e| AppError::Custom(format!("Failed to serialize SARIF: {e}")))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let sarif = build_sarif(&report);
+        let json = serde_json::to_string_pretty(&sarif)
+            .map_err(|e| AppError::Custom(format!("Failed to serialize SARIF: {e}")))?;
+        std::fs::write(file_path, json)?;
+        Ok::<(), AppError>(())
+    })
+    .await
+    .map_err(|e| AppError::Custom(format!("SARIF export worker failed: {e}")))??;
 
-    std::fs::write(file_path, json)?;
     Ok(())
 }
 
@@ -114,7 +119,10 @@ fn build_sarif(report: &VulnerabilityReport) -> SarifLog {
     for file in &report.files {
         for function in &file.functions {
             let rule_id = function.cwe.as_deref().unwrap_or("UNKNOWN").to_string();
-            let cwe_name = function.cwe_name.as_deref().unwrap_or("Unknown vulnerability");
+            let cwe_name = function
+                .cwe_name
+                .as_deref()
+                .unwrap_or("Unknown vulnerability");
 
             rules
                 .entry(rule_id.clone())
@@ -179,5 +187,8 @@ fn sarif_level(severity: Option<&str>) -> &'static str {
 fn result_message(function: &FunctionData) -> String {
     let cwe = function.cwe.as_deref().unwrap_or("Unknown CWE");
     let cwe_name = function.cwe_name.as_deref().unwrap_or("vulnerability");
-    format!("{} detected in function `{}` ({})", cwe_name, function.function_name, cwe)
+    format!(
+        "{} detected in function `{}` ({})",
+        cwe_name, function.function_name, cwe
+    )
 }
