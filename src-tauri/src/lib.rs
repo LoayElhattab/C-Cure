@@ -5,6 +5,7 @@ pub mod inference;
 pub mod monitor;
 pub mod parser;
 pub mod report;
+pub mod sarif_export;
 pub mod services;
 
 use reqwest::Client;
@@ -70,6 +71,7 @@ pub fn run() {
             commands::get_settings,
             commands::save_settings,
             commands::generate_pdf,
+            commands::export_sarif,
             commands::open_path
         ])
         .run(tauri::generate_context!())

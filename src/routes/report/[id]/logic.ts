@@ -38,3 +38,23 @@ export async function exportPDF(id: string): Promise<void> {
         success("Report exported successfully");
     } catch (err) { errorToast("Failed to export PDF: " + err); }
 }
+
+export async function exportSARIF(id: string): Promise<void> {
+    try {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const filePath = await save({
+            defaultPath: `c-cure-analysis-${id}.sarif`,
+            filters: [{ name: "SARIF", extensions: ["sarif"] }],
+        });
+
+        if (!filePath) return;
+
+        await invoke("export_sarif", {
+            analysisId: parseInt(id),
+            filePath,
+        });
+        success("SARIF exported successfully");
+    } catch (err) {
+        errorToast("Failed to export SARIF: " + err);
+    }
+}

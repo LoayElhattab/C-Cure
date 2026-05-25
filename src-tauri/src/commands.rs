@@ -162,6 +162,15 @@ pub async fn generate_pdf(
 }
 
 #[tauri::command]
+pub async fn export_sarif(
+    state: tauri::State<'_, AppState>,
+    analysis_id: i64,
+    file_path: String,
+) -> Result<(), AppError> {
+    crate::sarif_export::export_sarif(&state.pool, analysis_id, file_path).await
+}
+
+#[tauri::command]
 pub fn open_path(path: String) -> Result<(), AppError> {
     open::that(&path).map_err(|e| AppError::Custom(e.to_string()))
 }

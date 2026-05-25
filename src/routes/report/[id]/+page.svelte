@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import { onMount } from "svelte";
-  import { Download, ArrowRight, History } from "lucide-svelte";
-  import { fetchAnalysisSummary, exportPDF } from "./logic";
+  import { Download, ArrowRight, History, FileJson } from "lucide-svelte";
+  import { fetchAnalysisSummary, exportPDF, exportSARIF } from "./logic";
   let report = $state<any>(null);
   let error = $state("");
   let loading = $state(true);
@@ -218,6 +218,12 @@
           class="btn-ghost"
         >
           <Download size={12} />Export PDF
+        </button>
+        <button
+          onclick={() => exportSARIF($page.params.id ?? "0")}
+          class="btn-ghost"
+        >
+          <FileJson size={12} />Export SARIF
         </button>
         <a href="/report/{$page.params.id}/detail" class="btn-primary">
           Full Report <ArrowRight size={12} />
