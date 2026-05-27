@@ -9,6 +9,7 @@ use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tauri::Emitter;
+use tauri_plugin_notification::NotificationExt;
 
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
@@ -86,6 +87,77 @@ fn source_paths_from_event(event: Event) -> Vec<PathBuf> {
         .collect()
 }
 
+/// Severity levels we care about for alerting (Critical > High only).
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+enum AlertSeverity {
+    High,
+    Critical,
+}
+
+/// Returns the `AlertSeverity` for a known CWE string, or `None` for Low/Medium.
+fn cwe_alert_severity(cwe: &str) -> Option<AlertSeverity> {
+    match cwe {
+        "CWE-787"                    => Some(AlertSeverity::Critical),
+        "CWE-125" | "CWE-415" | "CWE-476" => Some(AlertSeverity::High),
+        _ => None,
+    }
+}
+
+/// Fires a native OS notification if any result is Critical or High severity.
+/// The call is non-blocking; any OS permission error is logged and ignored.
+fn send_severity_alert(
+    app_handle: &tauri::AppHandle,
+    file_path_str: &str,
+    results: &[crate::db::FunctionData],
+) {
+    // Collect only vulnerable functions with a CWE that maps to Critical/High.
+    let mut alerts: Vec<(AlertSeverity, &str, &str)> = results
+        .iter()
+        .filter(|f| f.verdict == "vulnerable")
+        .filter_map(|f| {
+            let cwe = f.cwe.as_deref()?;
+            let severity = cwe_alert_severity(cwe)?;
+            let cwe_name = f.cwe_name.as_deref().unwrap_or("Unknown");
+            Some((severity, cwe, cwe_name))
+        })
+        .collect();
+
+    if alerts.is_empty() {
+        return;
+    }
+
+    // Sort descending so the worst offender is first.
+    alerts.sort_by(|a, b| b.0.cmp(&a.0));
+
+    let filename = std::path::Path::new(file_path_str)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| file_path_str.to_string());
+
+    let body = if alerts.len() == 1 {
+        let (sev, cwe, cwe_name) = alerts[0];
+        let sev_label = if sev == AlertSeverity::Critical { "Critical" } else { "High" };
+        format!("{sev_label} {cwe_name} ({cwe}) detected in {filename}")
+    } else {
+        let (top_sev, top_cwe, top_cwe_name) = alerts[0];
+        let sev_label = if top_sev == AlertSeverity::Critical { "Critical" } else { "High" };
+        format!(
+            "{} vulnerabilities detected in {filename} — worst: {sev_label} {top_cwe_name} ({top_cwe})",
+            alerts.len()
+        )
+    };
+
+    if let Err(err) = app_handle
+        .notification()
+        .builder()
+        .title("C-Cure Alert: Vulnerability Found")
+        .body(&body)
+        .show()
+    {
+        eprintln!("Failed to send OS notification: {err}");
+    }
+}
+
 async fn analyze_changed_file(context: WatcherContext, file_path: PathBuf, folder_path: String) {
     let file_path_str = file_path.to_string_lossy().to_string();
 
@@ -153,6 +225,9 @@ async fn analyze_changed_file(context: WatcherContext, file_path: PathBuf, folde
     .await
     {
         Ok(result) => {
+            // Fire a native OS notification for Critical / High findings.
+            send_severity_alert(&context.app_handle, &file_path_str, &result.functions);
+
             // Emit scan success event
             let _ = context.app_handle.emit("monitor-scan-success", serde_json::json!({
                 "path": file_path_str,
