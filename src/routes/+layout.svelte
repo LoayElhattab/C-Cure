@@ -1,7 +1,7 @@
 <script>
   import "../app.css";
   import { page } from "$app/stores";
-  import { Upload, BarChart3, Clock, Settings } from "lucide-svelte";
+  import { Upload, BarChart3, Clock, Settings, Radio } from "lucide-svelte";
   import { toasts } from "$lib/toast";
   import { theme } from "$lib/theme";
 
@@ -9,6 +9,7 @@
     { href: "/", label: "Upload", icon: Upload },
     { href: "/statistics", label: "Statistics", icon: BarChart3 },
     { href: "/history", label: "History", icon: Clock },
+    { href: "/monitor", label: "Monitor", icon: Radio },
   ];
 </script>
 

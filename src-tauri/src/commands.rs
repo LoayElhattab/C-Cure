@@ -277,3 +277,35 @@ pub async fn monitor_remove(
 ) -> Result<Value, AppError> {
     crate::monitor::unregister_project(&state.pool, project_id).await
 }
+
+#[tauri::command]
+pub async fn start_monitoring(
+    app_handle: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<Vec<String>, AppError> {
+    crate::monitor_service::register_and_start(
+        path,
+        crate::monitor_service::WatcherContext {
+            pool: state.pool.clone(),
+            client: state.reqwest_client.clone(),
+            app_data_dir: state.app_data_dir.clone(),
+            app_handle,
+        },
+        state.watchers.clone(),
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn stop_monitoring(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<Vec<String>, AppError> {
+    crate::monitor_service::stop_and_unregister(path, &state.pool, state.watchers.clone()).await
+}
+
+#[tauri::command]
+pub fn get_monitored_paths(state: tauri::State<'_, AppState>) -> Result<Vec<String>, AppError> {
+    crate::monitor_service::list_active_paths(&state.watchers)
+}

@@ -39,8 +39,8 @@ Large analyses are stored in DuckDB and loaded through paginated report endpoint
 ### Interactive Security Dashboard
 Monitor your project's security posture in real-time. The built-in dashboard provides visual metrics on total analyses, scanned files, vulnerable functions, severity distributions, CWE frequency, file-level safe/vulnerable ratios, and vulnerability trends over time.
 
-### Continuous Folder Monitoring
-Register your project directories to track changes automatically. C-Cure uses MD5 baseline hashing to detect added, modified, and deleted C/C++ files, allowing you to re-analyze only what has changed, saving time and resources.
+### Automated File Monitoring
+Dynamically update scan results with a proactive background agent using cross-platform file watching (`notify` crate). Automatically detects additions and modifications to C/C++ source and header files (`.c`, `.cpp`, `.h`, `.hpp`, `.cc`, `.cxx`) in registered directories, asynchronously debounces rapid IDE save events (500ms window) per file, triggers ML inference dynamically, and streams real-time status updates (start, success, error) to the UI via Tauri IPC event handlers—eliminating the need for manual re-scans. File content hashes are permanently stored in the local DuckDB database, ensuring that file state is persisted across application restarts to prevent redundant scans.
 
 ### Enterprise Export Reporting
 Export vulnerability assessment results through a unified export panel available from both summary and detailed report views. The workflow lets users choose Technical PDF, Executive PDF, SARIF 2.1.0, or CSV, pick the destination with a native save-file dialog filtered to the selected format, and receive progress and completion notifications while asynchronous background workers generate the report.
@@ -56,7 +56,7 @@ Enjoy a modern, responsive interface built with Svelte 5 and Tailwind CSS. The a
 |-------|-----------|-------------|
 | **Frontend** | SvelteKit + Svelte 5 + Tailwind | A reactive desktop UI managing analysis setup, dashboards, monitoring, settings, history, and paginated report views. |
 | **Shell** | Tauri v2 | Native application shell exposing secure IPC commands, file dialogs, path opening, and bundled desktop distribution. |
-| **Logic Engine** | Rust + Tokio | Asynchronous backend handling orchestration, file system I/O, inference dispatch, report generation, and application state. |
+| **Logic Engine** | Rust + Tokio | Asynchronous backend handling orchestration, file system watching, file system I/O, inference dispatch, report generation, and application state. |
 | **Parser** | Tree-sitter C++ | Industrial-grade parser for C/C++ function extraction, including templates, source ranges, and code normalization. |
 | **Inference Layer** | Reqwest + Kaggle/NGROK API | Configurable remote inference provider that classifies extracted snippets and maps model output to CWE metadata. |
 | **Persistence** | DuckDB + async-duckdb | Local analytical database for analyses, files, functions, watched projects, file hashes, statistics, pagination, and reporting pipelines. |
@@ -76,6 +76,7 @@ Enjoy a modern, responsive interface built with Svelte 5 and Tailwind CSS. The a
 |   |   |-- commands.rs          # Tauri IPC command surface
 |   |   |-- parser.rs            # Tree-sitter function extraction and source normalization
 |   |   |-- monitor.rs           # Hash-based project monitoring
+|   |   |-- monitor_service.rs   # Automated file watching and debounced re-analysis
 |   |   |-- report.rs            # Native PDF generation
 |   |   |-- db/                  # DuckDB schema, migration, repositories, pagination, and statistics
 |   |   |-- inference/           # Kaggle provider, mock provider, settings, and async dispatcher

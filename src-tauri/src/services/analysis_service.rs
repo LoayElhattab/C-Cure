@@ -26,10 +26,21 @@ pub async fn analyze_file_service(
     }
 
     let path = Path::new(&file_path);
-    let project_name = path
+    let mut project_name = path
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "Unknown".to_string());
+
+    // Try to find if this file belongs to a watched project
+    if let Ok(projects) = crate::db::projects_repo::get_watched_projects(pool).await {
+        let file_path_lower = file_path.to_lowercase();
+        if let Some(p) = projects.into_iter().find(|p| {
+            let folder_lower = p.folder_path.to_lowercase();
+            file_path_lower.starts_with(&folder_lower)
+        }) {
+            project_name = p.name;
+        }
+    }
 
     let analysis_id =
         crate::db::analysis_repo::save_analysis(pool, project_name.clone(), file_path.clone())

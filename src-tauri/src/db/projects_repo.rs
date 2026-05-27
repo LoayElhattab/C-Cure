@@ -36,6 +36,27 @@ pub async fn add_watched_project(
     .await
 }
 
+pub async fn upsert_watched_project(
+    pool: &DbPool,
+    name: String,
+    folder_path: String,
+) -> Result<i32, AppError> {
+    pool.with_conn(move |conn| {
+        conn.execute(
+            "INSERT INTO watched_projects (name, folder_path)
+             VALUES (?, ?)
+             ON CONFLICT (folder_path)
+             DO UPDATE SET name = EXCLUDED.name",
+            params![name, folder_path.clone()],
+        )?;
+
+        let mut stmt = conn.prepare("SELECT id FROM watched_projects WHERE folder_path = ?")?;
+        let id: i32 = stmt.query_row(params![folder_path], |row| row.get(0))?;
+        Ok(id)
+    })
+    .await
+}
+
 pub async fn get_watched_projects(pool: &DbPool) -> Result<Vec<WatchedProject>, AppError> {
     pool.with_conn(|conn| {
         let mut stmt = conn.prepare(
@@ -59,6 +80,30 @@ pub async fn get_watched_projects(pool: &DbPool) -> Result<Vec<WatchedProject>, 
     .await
 }
 
+pub async fn remove_watched_project_by_path(
+    pool: &DbPool,
+    folder_path: String,
+) -> Result<(), AppError> {
+    pool.with_conn(move |conn| {
+        let project_id = {
+            let mut stmt = conn.prepare("SELECT id FROM watched_projects WHERE folder_path = ?")?;
+            match stmt.query_row(params![folder_path.clone()], |row| row.get::<_, i32>(0)) {
+                Ok(id) => Some(id),
+                Err(duckdb::Error::QueryReturnedNoRows) => None,
+                Err(err) => return Err(err),
+            }
+        };
+
+        if let Some(id) = project_id {
+            conn.execute("DELETE FROM file_hashes WHERE project_id = ?", params![id])?;
+            conn.execute("DELETE FROM watched_projects WHERE id = ?", params![id])?;
+        }
+
+        Ok(())
+    })
+    .await
+}
+
 pub async fn save_file_hashes(
     pool: &DbPool,
     project_id: i32,
@@ -69,7 +114,7 @@ pub async fn save_file_hashes(
             "INSERT INTO file_hashes (project_id, file_path, file_hash)
              VALUES (?, ?, ?)
              ON CONFLICT (project_id, file_path)
-             DO UPDATE SET file_hash = EXCLUDED.file_hash, hashed_at = CURRENT_TIMESTAMP",
+             DO UPDATE SET file_hash = EXCLUDED.file_hash, hashed_at = now()",
         )?;
         for (path, hash) in &hashes {
             stmt.execute(params![project_id, path, hash])?;
@@ -114,3 +159,59 @@ pub async fn remove_watched_project(pool: &DbPool, project_id: i32) -> Result<()
     })
     .await
 }
+
+pub async fn get_project_id_by_path(
+    pool: &DbPool,
+    folder_path: String,
+) -> Result<Option<i32>, AppError> {
+    pool.with_conn(move |conn| {
+        let mut stmt = conn.prepare("SELECT id FROM watched_projects WHERE folder_path = ?")?;
+        match stmt.query_row(params![folder_path], |row| row.get::<_, i32>(0)) {
+            Ok(id) => Ok(Some(id)),
+            Err(duckdb::Error::QueryReturnedNoRows) => Ok(None),
+            Err(err) => Err(err),
+        }
+    })
+    .await
+}
+
+pub async fn get_file_hash(
+    pool: &DbPool,
+    project_id: i32,
+    file_path: String,
+) -> Result<Option<u64>, AppError> {
+    pool.with_conn(move |conn| {
+        let mut stmt = conn.prepare(
+            "SELECT file_hash FROM file_hashes WHERE project_id = ? AND file_path = ?"
+        )?;
+        match stmt.query_row(params![project_id, file_path], |row| row.get::<_, String>(0)) {
+            Ok(hash_str) => {
+                let parsed = hash_str.parse::<u64>().ok();
+                Ok(parsed)
+            }
+            Err(duckdb::Error::QueryReturnedNoRows) => Ok(None),
+            Err(err) => Err(err),
+        }
+    })
+    .await
+}
+
+pub async fn upsert_file_hash(
+    pool: &DbPool,
+    project_id: i32,
+    file_path: String,
+    hash_value: u64,
+) -> Result<(), AppError> {
+    pool.with_conn(move |conn| {
+        conn.execute(
+            "INSERT INTO file_hashes (project_id, file_path, file_hash)
+             VALUES (?, ?, ?)
+             ON CONFLICT (project_id, file_path)
+             DO UPDATE SET file_hash = EXCLUDED.file_hash, hashed_at = now()",
+            params![project_id, file_path, hash_value.to_string()],
+        )?;
+        Ok(())
+    })
+    .await
+}
+

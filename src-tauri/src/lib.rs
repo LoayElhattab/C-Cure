@@ -4,6 +4,7 @@ pub mod db;
 pub mod error;
 pub mod inference;
 pub mod monitor;
+pub mod monitor_service;
 pub mod parser;
 pub mod report;
 pub mod sarif_export;
@@ -17,6 +18,7 @@ pub struct AppState {
     pub pool: db::DbPool,
     pub reqwest_client: Client,
     pub app_data_dir: PathBuf,
+    pub watchers: monitor_service::WatcherRegistry,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -38,13 +40,33 @@ pub fn run() {
             })
             .expect("Failed to initialize database pool");
 
+            let reqwest_client = Client::builder()
+                .danger_accept_invalid_certs(true) // For local Kaggle ngrok
+                .build()
+                .unwrap_or_default();
+            let watchers = monitor_service::new_registry();
+
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::block_on(async {
+                if let Err(err) = monitor_service::restore_watchers(
+                    monitor_service::WatcherContext {
+                        pool: pool.clone(),
+                        client: reqwest_client.clone(),
+                        app_data_dir: app_data_dir.clone(),
+                        app_handle,
+                    },
+                    watchers.clone(),
+                )
+                .await {
+                    eprintln!("Failed to restore file watchers on startup: {err}");
+                }
+            });
+
             app.manage(AppState {
                 pool,
-                reqwest_client: Client::builder()
-                    .danger_accept_invalid_certs(true) // For local Kaggle ngrok
-                    .build()
-                    .unwrap_or_default(),
+                reqwest_client,
                 app_data_dir,
+                watchers,
             });
 
             Ok(())
@@ -68,6 +90,9 @@ pub fn run() {
             commands::monitor_check,
             commands::monitor_refresh,
             commands::monitor_remove,
+            commands::start_monitoring,
+            commands::stop_monitoring,
+            commands::get_monitored_paths,
             commands::delete_analysis,
             commands::get_settings,
             commands::save_settings,
