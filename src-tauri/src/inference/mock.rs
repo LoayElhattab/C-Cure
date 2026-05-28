@@ -55,4 +55,17 @@ impl InferenceProvider for MockProvider {
             }
         })
     }
+
+    fn generate_fix<'a>(
+        &'a self,
+        _code: &'a str,
+        cwe: &'a str,
+    ) -> Pin<Box<dyn Future<Output = Result<String>> + Send + '_>> {
+        Box::pin(async move {
+            Ok(format!(
+                "// AI-Generated Fix for {}\n// Replace vulnerable block with secure alternative\nvoid secure_fn() {{\n    // ... fixed code ...\n}}",
+                cwe
+            ))
+        })
+    }
 }

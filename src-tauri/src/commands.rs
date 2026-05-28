@@ -4,8 +4,8 @@ use crate::db::{
     AnalysisListItem, AnalysisSummary, PagedFunctions, Report, StatisticsData, WatchedProject,
 };
 use crate::error::AppError;
+use crate::exports::pdf::ExportSettings;
 use crate::inference::AnalysisResult;
-use crate::report::ExportSettings;
 use crate::AppState;
 use std::path::PathBuf;
 
@@ -163,7 +163,7 @@ pub async fn generate_pdf(
         executive_summary_only,
     };
     let path = tauri::async_runtime::spawn_blocking(move || {
-        crate::report::generate_pdf(&report, settings)
+        crate::exports::pdf::generate_pdf(&report, settings)
     })
     .await
     .map_err(|e| AppError::Custom(format!("PDF export worker failed: {e}")))?
@@ -193,7 +193,7 @@ pub async fn export_report(
                 executive_summary_only,
             };
             tauri::async_runtime::spawn_blocking(move || {
-                let generated_path = crate::report::generate_pdf(&report, settings)?;
+                let generated_path = crate::exports::pdf::generate_pdf(&report, settings)?;
                 std::fs::copy(&generated_path, &destination).map_err(|e| {
                     AppError::Custom(format!("Failed to save PDF export: {e}"))
                 })?;
@@ -203,10 +203,10 @@ pub async fn export_report(
             .map_err(|e| AppError::Custom(format!("PDF export worker failed: {e}")))??;
         }
         "sarif" => {
-            crate::sarif_export::export_sarif(&state.pool, analysis_id, file_path.clone()).await?;
+            crate::exports::sarif::export_sarif(&state.pool, analysis_id, file_path.clone()).await?;
         }
         "csv" => {
-            crate::csv_export::export_csv(&state.pool, analysis_id as i32, file_path.clone())
+            crate::exports::csv::export_csv(&state.pool, analysis_id as i32, file_path.clone())
                 .await?;
         }
         _ => return Err(AppError::Custom(format!("Unsupported export format: {format}"))),
@@ -221,7 +221,7 @@ pub async fn export_sarif(
     analysis_id: i64,
     file_path: String,
 ) -> Result<(), AppError> {
-    crate::sarif_export::export_sarif(&state.pool, analysis_id, file_path).await
+    crate::exports::sarif::export_sarif(&state.pool, analysis_id, file_path).await
 }
 
 #[tauri::command]
@@ -230,7 +230,23 @@ pub async fn export_csv(
     analysis_id: i32,
     file_path: String,
 ) -> Result<(), AppError> {
-    crate::csv_export::export_csv(&state.pool, analysis_id, file_path).await
+    crate::exports::csv::export_csv(&state.pool, analysis_id, file_path).await
+}
+
+#[tauri::command]
+pub async fn generate_vulnerability_fix(
+    state: tauri::State<'_, AppState>,
+    code: String,
+    cwe: String,
+) -> Result<String, AppError> {
+    let url = crate::inference::load_kaggle_url(&state.app_data_dir);
+    crate::services::analysis_service::generate_vulnerability_fix_service(
+        state.reqwest_client.clone(),
+        url,
+        code,
+        cwe,
+    )
+    .await
 }
 
 #[tauri::command]

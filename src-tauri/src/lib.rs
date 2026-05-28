@@ -1,13 +1,11 @@
 pub mod commands;
-pub mod csv_export;
 pub mod db;
 pub mod error;
+pub mod exports;
 pub mod inference;
 pub mod monitor;
 pub mod monitor_service;
 pub mod parser;
-pub mod report;
-pub mod sarif_export;
 pub mod services;
 
 use reqwest::Client;
@@ -101,6 +99,7 @@ pub fn run() {
             commands::generate_pdf,
             commands::export_sarif,
             commands::export_csv,
+            commands::generate_vulnerability_fix,
             commands::open_path
         ])
         .run(tauri::generate_context!())

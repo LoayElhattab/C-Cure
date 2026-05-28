@@ -63,7 +63,7 @@ Enjoy a modern, responsive interface built with Svelte 5 and Tailwind CSS. The a
 | **Parser** | Tree-sitter C++ | Industrial-grade parser for C/C++ function extraction, including templates, source ranges, and code normalization. |
 | **Inference Layer** | Reqwest + Kaggle/NGROK API | Configurable remote inference provider that classifies extracted snippets and maps model output to CWE metadata. |
 | **Persistence** | DuckDB + async-duckdb | Local analytical database for analyses, files, functions, watched projects, file hashes, statistics, pagination, and reporting pipelines. |
-| **Reporting** | genpdf | Native PDF generation for vulnerability-focused assessment reports. |
+| **Export Engine** | PDF, SARIF, CSV | Modular export system providing technical/executive PDF, SARIF 2.1.0, and CSV assessment results. |
 
 ---
 
@@ -80,7 +80,7 @@ Enjoy a modern, responsive interface built with Svelte 5 and Tailwind CSS. The a
 |   |   |-- parser.rs            # Tree-sitter function extraction and source normalization
 |   |   |-- monitor.rs           # Hash-based project monitoring
 |   |   |-- monitor_service.rs   # Automated file watching and debounced re-analysis
-|   |   |-- report.rs            # Native PDF generation
+|   |   |-- exports/             # Export modules (PDF, SARIF, CSV)
 |   |   |-- db/                  # DuckDB schema, migration, repositories, pagination, and statistics
 |   |   |-- inference/           # Kaggle provider, mock provider, settings, and async dispatcher
 |   |   `-- services/            # Analysis orchestration services
