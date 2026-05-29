@@ -2,7 +2,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import { Chart, registerables } from "chart.js";
-  import { theme } from "$lib/theme";
+  import { theme } from "$lib/types/theme";
 
   Chart.register(...registerables);
 

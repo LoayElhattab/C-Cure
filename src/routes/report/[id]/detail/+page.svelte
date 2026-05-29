@@ -1,6 +1,6 @@
 <script lang="ts">
     import { page } from "$app/stores";
-    import { theme } from "$lib/theme";
+    import { theme } from "$lib/types/theme";
     import { onMount } from "svelte";
     import { invoke } from "@tauri-apps/api/core";
     import {
@@ -26,7 +26,7 @@
         getCVSSColor,
         getSeverityBorderColor,
         getSeverityGlow,
-    } from "$lib/cwe_db";
+    } from "$lib/constants/cwe_db";
 
     // ── Types ────────────────────────────────────────────────────────────────
     interface FunctionRow {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { theme } from "$lib/theme";
+  import { theme } from "$lib/types/theme";
   import { FolderOpen, FileCode } from "lucide-svelte";
   import { handleFilePick, handleFolderPick, handleAnalyze } from "./logic";
 

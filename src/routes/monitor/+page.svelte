@@ -4,7 +4,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { onMount } from "svelte";
   import { FolderOpen, Radio, Square, XCircle } from "lucide-svelte";
-  import { success as toastSuccess, error as toastError, info as toastInfo } from "$lib/toast";
+  import { success as toastSuccess, error as toastError, info as toastInfo } from "$lib/utils/toast";
 
   type MonitoredFolder = {
     id: number;

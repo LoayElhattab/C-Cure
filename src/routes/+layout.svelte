@@ -2,8 +2,8 @@
   import "../app.css";
   import { page } from "$app/stores";
   import { Upload, BarChart3, Clock, Settings, Radio } from "lucide-svelte";
-  import { toasts } from "$lib/toast";
-  import { theme } from "$lib/theme";
+  import { toasts } from "$lib/utils/toast";
+  import { theme } from "$lib/types/theme";
 
   const navLinks = [
     { href: "/", label: "Upload", icon: Upload },

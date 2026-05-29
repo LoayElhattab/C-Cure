@@ -72,7 +72,13 @@ Enjoy a modern, responsive interface built with Svelte 5 and Tailwind CSS. The a
 ```text
 .
 |-- src/                         # Frontend Application (SvelteKit)
-|   |-- lib/                     # Shared stores, UI components, themes, CWE metadata, and utilities
+|   |-- lib/                     # Shared library code ($lib)
+|   |   |-- components/          # Reusable Svelte components (UI, modals)
+|   |   |-- constants/           # CWE database and static data
+|   |   |-- stores/              # Svelte stores (analysis, app state)
+|   |   |-- styles/              # Global CSS and theme styles
+|   |   |-- types/               # TypeScript definitions (bindings, theme)
+|   |   `-- utils/               # Utility functions and toast manager
 |   `-- routes/                  # Application pages (Analyze, Statistics, Monitor, History, Reports, Settings)
 |-- src-tauri/                   # Native Backend (Rust + Tauri)
 |   |-- src/

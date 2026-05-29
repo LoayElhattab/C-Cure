@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { theme } from "$lib/theme";
+    import { theme } from "$lib/types/theme";
     import { Sun, Moon, Wifi } from "lucide-svelte";
     import { loadSettings, saveSettings } from "./logic";
 
